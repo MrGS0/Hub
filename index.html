@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projects</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='5' fill='%230E8A62'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --snow:#F5F7F9;
+    --ink:#16181D;
+    --haze:#5C6672;
+    --line:#DCE1E7;
+    --hover:#ECF0F3;
+    --aurora:#0E8A62;
+    --aurora-deep:#0A6B4C;
+    --warn:#B4553B;
+    --sans:"Schibsted Grotesk",system-ui,-apple-system,sans-serif;
+    --mono:"Spline Sans Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{background:var(--snow)}
+  body{
+    font-family:var(--sans);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    min-height:100svh;
+  }
+  .wrap{
+    max-width:720px;
+    margin:0 auto;
+    padding:56px 24px 96px;
+  }
+
+  /* ---------- header ---------- */
+  .eyebrow{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.04em;
+    color:var(--haze);
+    min-height:18px;
+  }
+  .dot{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--line);
+    flex:none;
+    transition:background .4s ease;
+  }
+  .dot.live{background:var(--aurora)}
+  .dot.err{background:var(--warn)}
+  h1{
+    margin-top:14px;
+    font-size:clamp(34px,7vw,46px);
+    font-weight:700;
+    letter-spacing:-.02em;
+    line-height:1.05;
+  }
+
+  /* ---------- controls ---------- */
+  .filter{
+    margin-top:28px;
+    width:100%;
+    border:0;
+    border-bottom:1px solid var(--line);
+    background:transparent;
+    font-family:var(--sans);
+    font-size:17px;
+    color:var(--ink);
+    padding:10px 2px;
+    border-radius:0;
+  }
+  .filter::placeholder{color:var(--haze);opacity:.7}
+  .filter:focus{outline:none;border-bottom-color:var(--aurora)}
+  .meta{
+    margin-top:14px;
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--haze);
+  }
+  .refresh{
+    border:0;background:none;cursor:pointer;
+    font-family:var(--mono);font-size:12px;
+    color:var(--aurora-deep);
+    padding:2px;
+  }
+  .refresh:hover{text-decoration:underline}
+
+  /* ---------- list ---------- */
+  .list{margin-top:22px;list-style:none;border-top:1px solid var(--line)}
+  .row{border-bottom:1px solid var(--line)}
+  .row a{
+    display:flex;
+    align-items:baseline;
+    gap:16px;
+    padding:18px 8px;
+    text-decoration:none;
+    color:var(--ink);
+    transition:background .15s ease;
+  }
+  .row a:hover{background:var(--hover)}
+  .name{
+    font-size:18px;
+    font-weight:500;
+    flex:1;
+    min-width:0;
+    overflow-wrap:anywhere;
+  }
+  .size{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--haze);
+    flex:none;
+  }
+  .arrow{
+    font-family:var(--mono);
+    color:var(--aurora);
+    flex:none;
+    opacity:0;
+    transition:opacity .15s ease, transform .15s ease;
+  }
+  .row a:hover .arrow{opacity:1}
+
+  /* ghost row: the add-a-project shortcut */
+  .ghost a{
+    display:block;
+    padding:18px 8px;
+    font-family:var(--mono);
+    font-size:13px;
+    color:var(--aurora-deep);
+    text-decoration:none;
+  }
+  .ghost a:hover{background:var(--hover)}
+  .ghost .plus{margin-right:8px}
+
+  /* ---------- states ---------- */
+  .state{
+    margin-top:22px;
+    border-top:1px solid var(--line);
+    padding:26px 8px;
+    font-size:15px;
+    line-height:1.55;
+    color:var(--haze);
+    max-width:52ch;
+  }
+  .state strong{color:var(--ink);font-weight:500}
+  .state .retry{
+    display:inline-block;margin-top:12px;
+    border:1px solid var(--line);background:#fff;
+    font-family:var(--mono);font-size:12px;color:var(--ink);
+    padding:8px 16px;border-radius:999px;cursor:pointer;
+  }
+  .state .retry:hover{border-color:var(--aurora)}
+  .state code{
+    font-family:var(--mono);font-size:.85em;
+    background:var(--hover);padding:2px 6px;border-radius:4px;
+    color:var(--ink);
+  }
+  .skeleton{margin-top:22px;border-top:1px solid var(--line)}
+  .skeleton div{
+    height:57px;border-bottom:1px solid var(--line);
+    background:linear-gradient(90deg,transparent 30%,var(--hover) 50%,transparent 70%);
+    background-size:200% 100%;
+  }
+
+  /* ---------- focus + motion ---------- */
+  a:focus-visible,button:focus-visible,input:focus-visible{
+    outline:2px solid var(--aurora);
+    outline-offset:2px;
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .row,.ghost{animation:rise .35s ease both}
+    @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    .skeleton div{animation:shimmer 1.4s linear infinite}
+    @keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">
+      <span class="dot" id="dot"></span>
+      <span id="repoLabel">detecting repository&hellip;</span>
+    </div>
+    <h1 id="title">Projects</h1>
+  </header>
+
+  <main>
+    <input class="filter" id="filter" type="search" placeholder="Filter&hellip;" aria-label="Filter projects" autocomplete="off" hidden>
+    <div class="meta" id="meta" hidden>
+      <span id="count"></span>
+      <button class="refresh" id="refresh" type="button">refresh</button>
+    </div>
+    <div id="out" aria-live="polite"></div>
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG
+   Everything auto-detects when served from *.github.io.
+   Fill these in only for custom domains, Netlify/Cloudflare,
+   or local testing.
+   ============================================================ */
+const CONFIG = {
+  title:  "Projects",   // heading shown on the page
+  owner:  "",           // GitHub username, e.g. "gabriel"
+  repo:   "",           // repository name, e.g. "hub"
+  branch: "",           // empty = repository default branch
+  folder: "projects",   // folder scanned for .html files
+  cacheMinutes: 5,      // session cache to spare the API limit
+};
+/* ================== end CONFIG ================== */
+
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+document.title = CONFIG.title;
+$("title").textContent = CONFIG.title;
+
+/* ---- figure out which repo this page lives in ---- */
+function detectRepo(){
+  if (CONFIG.owner && CONFIG.repo) return { owner: CONFIG.owner, repo: CONFIG.repo };
+  const host = location.hostname;
+  if (host.endsWith(".github.io")){
+    const owner = host.slice(0, -".github.io".length);
+    const seg = location.pathname.split("/").filter(Boolean);
+    const repo = (seg.length && seg[0] !== "index.html") ? seg[0] : host;
+    return { owner, repo };
+  }
+  return null;
+}
+const site = detectRepo();
+
+function prettyName(file){
+  return file.replace(/\.html?$/i, "")
+             .replace(/[-_]+/g, " ")
+             .trim()
+             .replace(/\b\w/g, c => c.toUpperCase());
+}
+function fmtSize(bytes){
+  return bytes >= 1048576 ? (bytes/1048576).toFixed(1) + " MB"
+                          : (bytes/1024).toFixed(1) + " KB";
+}
+function newFileUrl(){
+  return `https://github.com/${site.owner}/${site.repo}/new/${CONFIG.branch || "main"}/${CONFIG.folder}`;
+}
+
+/* ---- states ---- */
+function setDot(mode){ $("dot").className = "dot" + (mode ? " " + mode : ""); }
+
+function showSkeleton(){
+  $("out").innerHTML = `<div class="skeleton"><div></div><div></div><div></div></div>`;
+}
+function showState(html){
+  $("filter").hidden = true;
+  $("meta").hidden = true;
+  $("out").innerHTML = `<div class="state">${html}</div>`;
+  const r = $("out").querySelector(".retry");
+  if (r) r.addEventListener("click", () => load(true));
+}
+
+/* ---- fetch project list ---- */
+async function fetchList(force){
+  const key = `hub:${site.owner}/${site.repo}/${CONFIG.folder}`;
+  if (!force){
+    try{
+      const c = JSON.parse(sessionStorage.getItem(key));
+      if (c && Date.now() - c.t < CONFIG.cacheMinutes * 60000) return c.items;
+    }catch(e){}
+  }
+  let url = `https://api.github.com/repos/${site.owner}/${site.repo}/contents/${CONFIG.folder}`;
+  if (CONFIG.branch) url += `?ref=${encodeURIComponent(CONFIG.branch)}`;
+  const res = await fetch(url, { headers: { "Accept": "application/vnd.github+json" } });
+  if (!res.ok){ const err = new Error("api"); err.status = res.status; throw err; }
+  const data = await res.json();
+  const items = data
+    .filter(f => f.type === "file" && /\.html?$/i.test(f.name))
+    .map(f => ({ name: f.name, size: f.size }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  try{ sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), items })); }catch(e){}
+  return items;
+}
+
+/* ---- render ---- */
+let all = [];
+let animate = true;
+
+function render(){
+  const q = $("filter").value.trim().toLowerCase();
+  const items = all.filter(p => prettyName(p.name).toLowerCase().includes(q));
+  const total = all.reduce((s, p) => s + p.size, 0);
+  $("count").textContent =
+    `${items.length}${q ? " of " + all.length : ""} project${all.length === 1 ? "" : "s"} \u00B7 ${fmtSize(total)}`;
+
+  const rows = items.map((p, i) => `
+    <li class="row" style="${animate ? `animation-delay:${Math.min(i * 30, 300)}ms` : "animation:none"}">
+      <a href="${CONFIG.folder}/${encodeURIComponent(p.name)}">
+        <span class="name">${esc(prettyName(p.name))}</span>
+        <span class="size">${fmtSize(p.size)}</span>
+        <span class="arrow">&rarr;</span>
+      </a>
+    </li>`).join("");
+
+  const ghost = `
+    <li class="ghost" style="${animate ? `animation-delay:${Math.min(items.length * 30, 330)}ms` : "animation:none"}">
+      <a href="${newFileUrl()}" target="_blank" rel="noopener">
+        <span class="plus">+</span>${esc(CONFIG.folder)}/your-next-idea.html
+      </a>
+    </li>`;
+
+  $("out").innerHTML = `<ul class="list">${rows}${ghost}</ul>`;
+  animate = false;
+}
+
+/* ---- load ---- */
+async function load(force){
+  if (!site){
+    setDot("err");
+    $("repoLabel").textContent = "no repository";
+    showState(`This page can't tell which GitHub repository it belongs to.
+      Open <code>index.html</code> and fill in <strong>owner</strong> and
+      <strong>repo</strong> at the top of the script &mdash; search for <code>CONFIG</code>.`);
+    return;
+  }
+  $("repoLabel").textContent = `${site.owner}/${site.repo} \u00B7 ${CONFIG.folder}/`;
+  setDot("");
+  showSkeleton();
+  try{
+    all = await fetchList(force);
+    setDot("live");
+    if (!all.length){
+      showState(`No projects yet. Add an <code>.html</code> file to
+        <code>${esc(CONFIG.folder)}/</code> and it appears here.
+        <br><br><a href="${newFileUrl()}" target="_blank" rel="noopener"
+        style="color:var(--aurora-deep)">+ create the first one on GitHub</a>`);
+      return;
+    }
+    $("filter").hidden = false;
+    $("meta").hidden = false;
+    render();
+  }catch(e){
+    setDot("err");
+    if (e.status === 404){
+      showState(`The folder <code>${esc(CONFIG.folder)}/</code> doesn't exist in
+        <strong>${esc(site.owner)}/${esc(site.repo)}</strong> yet &mdash; or the repository is private.
+        Creating the first project file also creates the folder.
+        <br><br><a href="${newFileUrl()}" target="_blank" rel="noopener"
+        style="color:var(--aurora-deep)">+ create it on GitHub</a>`);
+    } else if (e.status === 403){
+      showState(`GitHub allows 60 anonymous requests per hour per network, and that
+        limit was just reached. It resets within the hour.
+        <br><button class="retry" type="button">Retry</button>`);
+    } else {
+      showState(`Couldn't reach the GitHub API. Check the connection, then try again.
+        <br><button class="retry" type="button">Retry</button>`);
+    }
+  }
+}
+
+$("filter").addEventListener("input", render);
+$("refresh").addEventListener("click", () => { animate = true; load(true); });
+load(false);
+</script>
+</body>
+</html>
