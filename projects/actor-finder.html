@@ -1,10 +1,13 @@
 <!doctype html>
 <!--
-  Hub project: Actor Finder
-  Search an actor by name -> photo + full filmography (movies & TV),
-  then filter the credits to instantly check "were they in <show>?"
-  Uses the TMDb API with a personal key entered in the page and
-  stored in localStorage — never committed to the repo.
+  Hub project: Actor Finder v3
+  ACTOR      name -> photo + full filmography, with credit filter
+  CHARACTER  character name -> the actor who plays them
+  TITLE      show/movie -> full cast, tap anyone for their filmography
+  SCENE      title (+ episode) + timestamp -> who's speaking at that moment,
+             using auto-fetched SDH subtitles (Wyzie Subs). No manual upload;
+             if no usable file exists, the app says so plainly.
+  Keys (TMDb + Wyzie) are typed into the page and stored in localStorage only.
 -->
 <html lang="en">
 <head>
@@ -29,17 +32,24 @@
 
   .back{
     position:fixed;top:20px;left:20px;z-index:5;
-    font-family:var(--mono);font-size:13px;
-    color:var(--haze);text-decoration:none;
-    background:var(--snow);padding:2px 6px;border-radius:6px;
+    font-family:var(--mono);font-size:13px;color:var(--haze);
+    text-decoration:none;background:var(--snow);padding:2px 6px;border-radius:6px;
   }
   .back:hover{color:var(--aurora-deep)}
 
   .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--haze);margin-top:26px}
   h1{margin-top:12px;font-size:clamp(32px,7vw,42px);font-weight:700;letter-spacing:-.02em;line-height:1.05}
 
-  /* ---- inputs ---- */
-  .bar{margin-top:26px;display:flex;gap:10px}
+  .tabs{margin-top:24px;display:flex;gap:8px;flex-wrap:wrap}
+  .tab{
+    border:1px solid var(--line);background:#fff;color:var(--haze);
+    font-family:var(--mono);font-size:12px;letter-spacing:.05em;
+    padding:8px 16px;border-radius:999px;cursor:pointer;
+  }
+  .tab:hover{border-color:var(--aurora)}
+  .tab.on{background:var(--aurora);border-color:var(--aurora);color:#fff}
+
+  .bar{margin-top:18px;display:flex;gap:10px}
   .field{
     flex:1;min-width:0;
     border:0;border-bottom:1px solid var(--line);background:transparent;
@@ -48,6 +58,7 @@
   }
   .field::placeholder{color:var(--haze);opacity:.7}
   .field:focus{outline:none;border-bottom-color:var(--aurora)}
+  .field.small{flex:0 0 90px}
   .btn{
     border:1px solid var(--line);background:#fff;color:var(--ink);
     font-family:var(--mono);font-size:13px;
@@ -56,73 +67,73 @@
   .btn:hover{border-color:var(--aurora)}
   .btn.primary{background:var(--aurora);border-color:var(--aurora);color:#fff}
   .btn.primary:hover{background:var(--aurora-deep)}
+  .btn.ghosty{font-size:12px;padding:8px 16px}
 
-  /* ---- setup panel ---- */
   .panel{margin-top:30px;border:1px solid var(--line);border-radius:14px;background:#fff;padding:22px}
   .panel h2{font-size:19px;font-weight:700}
   .panel p{margin-top:10px;font-size:15px;line-height:1.55;color:var(--haze)}
-  .panel ol{margin:12px 0 0 20px;font-size:15px;line-height:1.7;color:var(--ink)}
+  .panel ol{margin:12px 0 0 20px;font-size:15px;line-height:1.7}
   .panel a{color:var(--aurora-deep)}
   .panel .bar{margin-top:18px}
   .panel .err{margin-top:12px;font-family:var(--mono);font-size:12px;color:var(--warn)}
 
-  /* ---- states / notes ---- */
-  .note{margin-top:26px;font-size:15px;line-height:1.55;color:var(--haze);max-width:52ch}
-  .note.warn{color:var(--warn)}
-  .keyrow{margin-top:40px;font-family:var(--mono);font-size:11px;color:var(--haze)}
-  .keyrow button{border:0;background:none;font:inherit;color:var(--aurora-deep);cursor:pointer;padding:0}
-  .keyrow button:hover{text-decoration:underline}
+  .navrow{margin-top:22px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .backlink{border:0;background:none;cursor:pointer;padding:0;font-family:var(--mono);font-size:12px;color:var(--aurora-deep)}
+  .backlink:hover{text-decoration:underline}
+  .count{font-family:var(--mono);font-size:12px;color:var(--haze)}
 
-  /* ---- match list ---- */
-  .matches{margin-top:22px;list-style:none;border-top:1px solid var(--line)}
-  .matches li{border-bottom:1px solid var(--line)}
-  .matches button{
+  .rows{margin-top:10px;list-style:none;border-top:1px solid var(--line)}
+  .rows li{border-bottom:1px solid var(--line)}
+  .rows .rowbtn{
     display:flex;align-items:center;gap:14px;width:100%;
     padding:12px 8px;border:0;background:none;cursor:pointer;
     text-align:left;font-family:var(--sans);color:var(--ink);
   }
-  .matches button:hover{background:var(--hover)}
+  .rows .rowbtn:hover{background:var(--hover)}
   .thumb{
-    width:44px;height:58px;border-radius:8px;flex:none;
-    object-fit:cover;background:var(--hover);
-    display:grid;place-items:center;
-    font-family:var(--mono);font-size:15px;color:var(--haze);
+    width:44px;height:58px;border-radius:8px;flex:none;object-fit:cover;background:var(--hover);
+    display:grid;place-items:center;font-family:var(--mono);font-size:15px;color:var(--haze);
   }
-  .m-name{font-size:16px;font-weight:500}
-  .m-sub{font-size:13px;color:var(--haze);margin-top:2px}
+  .r-main{flex:1;min-width:0}
+  .r-name{font-size:16px;font-weight:500;overflow-wrap:anywhere}
+  .r-sub{font-size:13px;color:var(--haze);margin-top:2px;overflow-wrap:anywhere}
+  .badge{
+    font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--aurora-deep);
+    border:1px solid var(--line);border-radius:999px;padding:2px 8px;flex:none;
+  }
 
-  /* ---- person ---- */
-  .person{margin-top:28px;display:flex;align-items:center;gap:18px}
+  .person{margin-top:16px;display:flex;align-items:center;gap:18px}
   .photo{
-    width:76px;height:100px;border-radius:12px;flex:none;
-    object-fit:cover;background:var(--hover);
-    display:grid;place-items:center;
-    font-family:var(--mono);font-size:22px;color:var(--haze);
+    width:76px;height:100px;border-radius:12px;flex:none;object-fit:cover;background:var(--hover);
+    display:grid;place-items:center;font-family:var(--mono);font-size:22px;color:var(--haze);
   }
   .p-name{font-size:24px;font-weight:700;letter-spacing:-.01em}
   .p-sub{font-family:var(--mono);font-size:12px;color:var(--haze);margin-top:6px}
-
-  .count{margin-top:16px;font-family:var(--mono);font-size:12px;color:var(--haze)}
   .credits{margin-top:10px;list-style:none;border-top:1px solid var(--line)}
-  .credits li{
-    display:flex;align-items:baseline;gap:12px;
-    padding:13px 8px;border-bottom:1px solid var(--line);
-  }
+  .credits li{display:flex;align-items:baseline;gap:12px;padding:13px 8px;border-bottom:1px solid var(--line)}
   .year{font-family:var(--mono);font-size:12px;color:var(--haze);width:42px;flex:none}
-  .c-main{flex:1;min-width:0}
   .c-title{font-size:16px;font-weight:500;overflow-wrap:anywhere}
   .c-char{font-size:13px;color:var(--haze);margin-top:2px}
-  .badge{
-    font-family:var(--mono);font-size:10px;letter-spacing:.06em;
-    color:var(--aurora-deep);border:1px solid var(--line);
-    border-radius:999px;padding:2px 8px;flex:none;
-  }
 
+  .chips{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+  .chip{
+    font-family:var(--mono);font-size:11px;color:var(--haze);
+    border:1px solid var(--line);border-radius:999px;padding:4px 10px;
+  }
+  .filemeta{margin-top:18px;font-family:var(--mono);font-size:11px;color:var(--haze);line-height:1.8}
+  .actionsrow{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}
+
+  .note{margin-top:26px;font-size:15px;line-height:1.55;color:var(--haze);max-width:52ch}
+  .note.warn{color:var(--warn)}
+  .note strong{color:var(--ink);font-weight:500}
+  .keyrow{margin-top:40px;font-family:var(--mono);font-size:11px;color:var(--haze)}
+  .keyrow button{border:0;background:none;font:inherit;color:var(--aurora-deep);cursor:pointer;padding:0}
+  .keyrow button:hover{text-decoration:underline}
   footer{margin-top:48px;font-family:var(--mono);font-size:10px;color:var(--haze);line-height:1.6}
 
   a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--aurora);outline-offset:2px}
   @media (prefers-reduced-motion:no-preference){
-    .credits li,.matches li{animation:rise .3s ease both}
+    .rows li,.credits li{animation:rise .3s ease both}
     @keyframes rise{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
   }
   .hidden{display:none}
@@ -131,10 +142,10 @@
 <body>
 <a class="back" href="../">&larr; index</a>
 <div class="wrap">
-  <div class="eyebrow">TMDB &middot; PERSON SEARCH</div>
+  <div class="eyebrow">TMDB &middot; CAST &amp; SCENE SEARCH</div>
   <h1>Actor Finder</h1>
 
-  <!-- first-run key setup -->
+  <!-- first-run TMDb key setup -->
   <div class="panel hidden" id="setup">
     <h2>One-time setup</h2>
     <p>This page talks directly to The Movie Database. It needs your personal
@@ -151,17 +162,28 @@
     <div class="err hidden" id="keyErr"></div>
   </div>
 
-  <!-- search -->
+  <!-- app -->
   <div class="hidden" id="app">
+    <div class="tabs" role="tablist">
+      <button class="tab on" data-mode="actor"     type="button">ACTOR</button>
+      <button class="tab"    data-mode="character" type="button">CHARACTER</button>
+      <button class="tab"    data-mode="title"     type="button">TITLE</button>
+      <button class="tab"    data-mode="scene"     type="button">SCENE</button>
+    </div>
     <div class="bar">
       <input class="field" id="q" type="search" placeholder="Actor's name&hellip;" autocomplete="off">
       <button class="btn primary" id="go" type="button">Search</button>
     </div>
+    <div class="bar hidden" id="bar2">
+      <input class="field" id="q2" type="search"
+        placeholder="In which show or movie? (optional, but much more reliable)" autocomplete="off">
+    </div>
     <div id="out"></div>
-    <div class="keyrow">key saved in this browser &middot; <button id="keyChange" type="button">change key</button></div>
+    <div class="keyrow">keys saved in this browser &middot; <button id="keyChange" type="button">change TMDb key</button> &middot; <button id="wyzieChange" type="button">reset subtitle key</button></div>
   </div>
 
-  <footer>This product uses the TMDB API but is not endorsed or certified by TMDB.</footer>
+  <footer>This product uses the TMDB API but is not endorsed or certified by TMDB.<br>
+  Character lookups: Wikidata. Scene subtitles: Wyzie Subs.</footer>
 </div>
 
 <script>
@@ -169,24 +191,20 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const IMG = "https://image.tmdb.org/t/p/w185";
 const KEY_STORE = "af:key";
-
-let credits = [];       // full loaded filmography
-let personName = "";
+const WYZIE_STORE = "af:wyzie";
 
 /* ---------- key handling ---------- */
-function getKey(){ try{ return localStorage.getItem(KEY_STORE) || ""; }catch(e){ return ""; } }
-function setKey(k){ try{ localStorage.setItem(KEY_STORE, k); }catch(e){} }
+function store(k){ try{ return localStorage.getItem(k) || ""; }catch(e){ return ""; } }
+function save(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+function getKey(){ return store(KEY_STORE); }
+function getWyzie(){ return store(WYZIE_STORE); }
 
 function showSetup(msg){
-  $("setup").classList.remove("hidden");
-  $("app").classList.add("hidden");
+  $("setup").classList.remove("hidden"); $("app").classList.add("hidden");
   if (msg){ $("keyErr").textContent = msg; $("keyErr").classList.remove("hidden"); }
-  else { $("keyErr").classList.add("hidden"); }
+  else $("keyErr").classList.add("hidden");
 }
-function showApp(){
-  $("setup").classList.add("hidden");
-  $("app").classList.remove("hidden");
-}
+function showApp(){ $("setup").classList.add("hidden"); $("app").classList.remove("hidden"); }
 
 $("keySave").addEventListener("click", async () => {
   const k = $("keyInput").value.trim();
@@ -195,20 +213,20 @@ $("keySave").addEventListener("click", async () => {
   try{
     const res = await fetch(`https://api.themoviedb.org/3/configuration?api_key=${encodeURIComponent(k)}`);
     if (!res.ok) throw new Error(res.status);
-    setKey(k);
-    showApp();
-    $("q").focus();
+    save(KEY_STORE, k); showApp(); $("q").focus();
   }catch(e){
     showSetup(e.message === "401"
       ? "TMDb rejected that key. Check that you copied the v3 API Key, not the Read Access Token."
       : "Couldn't reach TMDb to verify the key. Check the connection and try again.");
-  }finally{
-    $("keySave").textContent = "Save";
-  }
+  }finally{ $("keySave").textContent = "Save"; }
 });
 $("keyChange").addEventListener("click", () => { $("keyInput").value = ""; showSetup(); });
+$("wyzieChange").addEventListener("click", () => {
+  try{ localStorage.removeItem(WYZIE_STORE); }catch(e){}
+  if (mode === "scene") $("out").innerHTML = `<div class="note">Subtitle key cleared \u2014 the SCENE tab will ask for a new one.</div>`;
+});
 
-/* ---------- api ---------- */
+/* ---------- APIs ---------- */
 async function tmdb(path, params = {}){
   const u = new URL("https://api.themoviedb.org/3" + path);
   u.searchParams.set("api_key", getKey());
@@ -217,53 +235,83 @@ async function tmdb(path, params = {}){
   if (!res.ok){ const err = new Error("api"); err.status = res.status; throw err; }
   return res.json();
 }
+async function wikidata(params){
+  const u = new URL("https://www.wikidata.org/w/api.php");
+  for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
+  u.searchParams.set("format", "json");
+  u.searchParams.set("origin", "*");
+  const res = await fetch(u);
+  if (!res.ok){ const err = new Error("wd"); err.status = res.status; throw err; }
+  return res.json();
+}
+async function wyzieSearch(params){
+  const u = new URL("https://sub.wyzie.io/search");
+  for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
+  u.searchParams.set("key", getWyzie());
+  const res = await fetch(u);
+  if (!res.ok){ const err = new Error("wyzie"); err.status = res.status; throw err; }
+  return res.json();
+}
+async function fetchSubtitle(url){
+  let res = await fetch(url);
+  if (!res.ok && (res.status === 401 || res.status === 403)){
+    const u = new URL(url); u.searchParams.set("key", getWyzie());
+    res = await fetch(u);
+  }
+  if (!res.ok){ const err = new Error("subdl"); err.status = res.status; throw err; }
+  return res.text();
+}
 
-/* ---------- search ---------- */
-async function search(){
-  const q = $("q").value.trim();
-  if (!q) return;
-  $("out").innerHTML = `<div class="note">Searching\u2026</div>`;
+/* ---------- tiny view stack ---------- */
+let viewStack = [];
+function open_(fn){ viewStack.push(fn); fn(); }
+function reset_(fn){ viewStack = [fn]; fn(); }
+function goBack(){ if (viewStack.length > 1){ viewStack.pop(); viewStack[viewStack.length - 1](); } }
+function navHtml(count){
+  const back = viewStack.length > 1 ? `<button class="backlink" id="bk" type="button">&larr; back</button>` : "";
+  return `<div class="navrow">${back}<span class="count">${count}</span></div>`;
+}
+function wireBack(){ const b = $("bk"); if (b) b.addEventListener("click", goBack); }
+
+/* ---------- shared row rendering ---------- */
+function rowHtml(i, img, initial, name, sub, badge, data){
+  return `<li style="animation-delay:${Math.min(i * 25, 300)}ms">
+    <button class="rowbtn" type="button" ${data}>
+      ${img ? `<img class="thumb" src="${IMG}${esc(img)}" alt="" loading="lazy">`
+            : `<span class="thumb">${esc(initial)}</span>`}
+      <span class="r-main">
+        <span class="r-name">${esc(name)}</span>
+        ${sub ? `<div class="r-sub">${sub}</div>` : ""}
+      </span>
+      ${badge ? `<span class="badge">${badge}</span>` : ""}
+    </button>
+  </li>`;
+}
+
+/* ---------- ACTOR mode ---------- */
+async function searchActor(q){
+  loadingNote(`Searching\u2026`);
   try{
     const data = await tmdb("/search/person", { query: q });
     const hits = (data.results || []).slice(0, 6);
-    if (!hits.length){
-      $("out").innerHTML = `<div class="note">No person named <strong>${esc(q)}</strong> in TMDb. Check the spelling, or try just the surname.</div>`;
-      return;
-    }
-    if (hits.length === 1){ loadPerson(hits[0]); return; }
-    renderMatches(hits);
+    if (!hits.length) return note(`No person named <strong>${esc(q)}</strong> in TMDb. Check the spelling, or try just the surname.`);
+    if (hits.length === 1) return loadPerson(hits[0], reset_);
+    reset_(() => {
+      $("out").innerHTML = navHtml(`${hits.length} matches \u2014 pick one`) + `<ul class="rows">` +
+        hits.map((p, i) => rowHtml(i, p.profile_path, (p.name || "?")[0], p.name,
+          esc((p.known_for || []).map(k => k.title || k.name).filter(Boolean).slice(0, 2).join(" \u00B7 ")),
+          "", `data-i="${i}"`)).join("") + `</ul>`;
+      wireBack();
+      $("out").querySelectorAll("[data-i]").forEach(b =>
+        b.addEventListener("click", () => loadPerson(hits[+b.dataset.i], open_)));
+    });
   }catch(e){ fail(e); }
 }
 
-function renderMatches(hits){
-  $("out").innerHTML = `
-    <div class="count">${hits.length} matches \u2014 pick one</div>
-    <ul class="matches">
-      ${hits.map((p, i) => `
-        <li style="animation-delay:${i * 30}ms">
-          <button type="button" data-i="${i}">
-            ${p.profile_path
-              ? `<img class="thumb" src="${IMG}${esc(p.profile_path)}" alt="" loading="lazy">`
-              : `<span class="thumb">${esc((p.name || "?")[0])}</span>`}
-            <span>
-              <span class="m-name">${esc(p.name)}</span>
-              <span class="m-sub">${esc((p.known_for || []).map(k => k.title || k.name).filter(Boolean).slice(0, 2).join(" \u00B7 "))}</span>
-            </span>
-          </button>
-        </li>`).join("")}
-    </ul>`;
-  $("out").querySelectorAll("button[data-i]").forEach(b =>
-    b.addEventListener("click", () => loadPerson(hits[+b.dataset.i])));
-}
-
-/* ---------- person + credits ---------- */
-async function loadPerson(p){
-  $("out").innerHTML = `<div class="note">Loading ${esc(p.name)}\u2019s credits\u2026</div>`;
+async function loadPerson(p, pusher){
+  loadingNote(`Loading ${esc(p.name)}\u2019s credits\u2026`);
   try{
     const data = await tmdb(`/person/${p.id}/combined_credits`);
-    personName = p.name;
-
-    // merge duplicate entries (same title, several characters)
     const map = new Map();
     for (const c of (data.cast || [])){
       const title = c.title || c.name;
@@ -272,78 +320,505 @@ async function loadPerson(p){
       const year = (c.release_date || c.first_air_date || "").slice(0, 4);
       if (map.has(id)){
         const prev = map.get(id);
-        if (c.character && !prev.character.includes(c.character))
-          prev.character += " / " + c.character;
-      } else {
-        map.set(id, { title, character: c.character || "", type: c.media_type, year });
-      }
+        if (c.character && !prev.character.includes(c.character)) prev.character += " / " + c.character;
+      } else map.set(id, { title, character: c.character || "", type: c.media_type, year });
     }
-    credits = [...map.values()].sort((a, b) => (b.year || "0").localeCompare(a.year || "0"));
+    const credits = [...map.values()].sort((a, b) => (b.year || "0").localeCompare(a.year || "0"));
 
-    $("out").innerHTML = `
-      <div class="person">
-        ${p.profile_path
-          ? `<img class="photo" src="${IMG}${esc(p.profile_path)}" alt="">`
-          : `<span class="photo">${esc((p.name || "?")[0])}</span>`}
-        <div>
-          <div class="p-name">${esc(p.name)}</div>
-          <div class="p-sub">${credits.length} credits \u00B7 ${esc(p.known_for_department || "Acting")}</div>
+    pusher(() => {
+      $("out").innerHTML = navHtml("") + `
+        <div class="person">
+          ${p.profile_path ? `<img class="photo" src="${IMG}${esc(p.profile_path)}" alt="">`
+                           : `<span class="photo">${esc((p.name || "?")[0])}</span>`}
+          <div>
+            <div class="p-name">${esc(p.name)}</div>
+            <div class="p-sub">${credits.length} credits</div>
+          </div>
         </div>
-      </div>
-      <div class="bar">
-        <input class="field" id="filter" type="search"
-          placeholder="In a specific show? Type its name\u2026" autocomplete="off" aria-label="Filter credits">
-      </div>
-      <div class="count" id="cCount"></div>
-      <ul class="credits" id="cList"></ul>`;
-    $("filter").addEventListener("input", renderCredits);
-    renderCredits();
+        <div class="bar">
+          <input class="field" id="cf" type="search"
+            placeholder="In a specific show? Type its name\u2026" autocomplete="off" aria-label="Filter credits">
+        </div>
+        <div class="count" id="cCount" style="margin-top:14px"></div>
+        <ul class="credits" id="cList"></ul>`;
+      wireBack();
+      const render = () => {
+        const fq = ($("cf").value || "").trim().toLowerCase();
+        const items = fq ? credits.filter(c =>
+          c.title.toLowerCase().includes(fq) || c.character.toLowerCase().includes(fq)) : credits;
+        $("cCount").textContent = !items.length
+          ? `${p.name} has no credit matching \u201C${$("cf").value.trim()}\u201D. Uncredited roles aren\u2019t in TMDb.`
+          : fq ? `${items.length} of ${credits.length} credits match`
+               : `${credits.length} credits, newest first`;
+        $("cList").innerHTML = items.slice(0, 400).map((c, i) => `
+          <li style="animation-delay:${Math.min(i * 20, 300)}ms">
+            <span class="year">${esc(c.year) || "\u2014"}</span>
+            <span class="r-main">
+              <span class="c-title">${esc(c.title)}</span>
+              ${c.character ? `<div class="c-char">as ${esc(c.character)}</div>` : ""}
+            </span>
+            <span class="badge">${c.type === "tv" ? "TV" : "FILM"}</span>
+          </li>`).join("");
+      };
+      $("cf").addEventListener("input", render);
+      render();
+    });
   }catch(e){ fail(e); }
 }
 
-function renderCredits(){
-  const q = ($("filter").value || "").trim().toLowerCase();
-  const items = q
-    ? credits.filter(c => c.title.toLowerCase().includes(q) || c.character.toLowerCase().includes(q))
-    : credits;
-
-  $("cCount").textContent = q
-    ? `${items.length} of ${credits.length} credits match \u201C${$("filter").value.trim()}\u201D`
-    : `${credits.length} credits, newest first`;
-
-  if (!items.length){
-    $("cList").innerHTML = "";
-    $("cCount").textContent =
-      `${personName} has no credit matching \u201C${$("filter").value.trim()}\u201D. Uncredited roles aren\u2019t listed in TMDb.`;
-    return;
-  }
-  $("cList").innerHTML = items.slice(0, 400).map((c, i) => `
-    <li style="animation-delay:${Math.min(i * 20, 300)}ms">
-      <span class="year">${esc(c.year) || "\u2014"}</span>
-      <span class="c-main">
-        <span class="c-title">${esc(c.title)}</span>
-        ${c.character ? `<div class="c-char">as ${esc(c.character)}</div>` : ""}
-      </span>
-      <span class="badge">${c.type === "tv" ? "TV" : "FILM"}</span>
-    </li>`).join("");
+/* ---------- TITLE mode ---------- */
+async function searchTitle(q, onPickOverride){
+  loadingNote(`Searching titles\u2026`);
+  try{
+    const data = await tmdb("/search/multi", { query: q });
+    const hits = (data.results || []).filter(r => r.media_type === "movie" || r.media_type === "tv").slice(0, 8);
+    if (!hits.length) return note(`No movie or show called <strong>${esc(q)}</strong> in TMDb.`);
+    const pick = onPickOverride || (item => loadCast(item, open_));
+    if (hits.length === 1) return pick(hits[0]);
+    reset_(() => {
+      $("out").innerHTML = navHtml(`${hits.length} titles \u2014 pick one`) + `<ul class="rows">` +
+        hits.map((t, i) => rowHtml(i, t.poster_path, (t.title || t.name || "?")[0],
+          t.title || t.name,
+          esc((t.release_date || t.first_air_date || "").slice(0, 4)),
+          t.media_type === "tv" ? "TV" : "FILM", `data-i="${i}"`)).join("") + `</ul>`;
+      wireBack();
+      $("out").querySelectorAll("[data-i]").forEach(b =>
+        b.addEventListener("click", () => pick(hits[+b.dataset.i])));
+    });
+  }catch(e){ fail(e); }
 }
 
-/* ---------- errors ---------- */
+const castCache = new Map();
+async function fetchCast(item){
+  const ck = `${item.media_type}-${item.id}`;
+  if (castCache.has(ck)) return castCache.get(ck);
+  let cast;
+  if (item.media_type === "tv"){
+    const data = await tmdb(`/tv/${item.id}/aggregate_credits`);
+    cast = (data.cast || []).map(c => ({
+      person: { id: c.id, name: c.name, profile_path: c.profile_path },
+      character: (c.roles || []).map(r => r.character).filter(Boolean).join(" / "),
+      eps: c.total_episode_count || 0,
+    })).sort((a, b) => b.eps - a.eps);
+  } else {
+    const data = await tmdb(`/movie/${item.id}/credits`);
+    cast = (data.cast || []).map(c => ({
+      person: { id: c.id, name: c.name, profile_path: c.profile_path },
+      character: c.character || "", eps: 0,
+    }));
+  }
+  castCache.set(ck, cast);
+  return cast;
+}
+
+async function loadCast(item, pusher){
+  const label = `${item.title || item.name}${(item.release_date || item.first_air_date) ? " (" + (item.release_date || item.first_air_date).slice(0, 4) + ")" : ""}`;
+  loadingNote(`Loading the cast of ${esc(label)}\u2026`);
+  try{
+    const cast = await fetchCast(item);
+    if (!cast.length) return note(`TMDb has no cast list for <strong>${esc(label)}</strong>.`);
+    pusher(() => {
+      $("out").innerHTML = navHtml(`${esc(label)} \u00B7 ${cast.length} cast`) + `
+        <div class="bar">
+          <input class="field" id="castf" type="search"
+            placeholder="Filter by actor or character\u2026" autocomplete="off" aria-label="Filter cast">
+        </div>
+        <ul class="rows" id="castList"></ul>`;
+      wireBack();
+      const render = () => {
+        const fq = ($("castf").value || "").trim().toLowerCase();
+        const items = fq ? cast.filter(c =>
+          c.person.name.toLowerCase().includes(fq) || c.character.toLowerCase().includes(fq)) : cast;
+        $("castList").innerHTML = items.slice(0, 250).map((c, i) =>
+          rowHtml(i, c.person.profile_path, (c.person.name || "?")[0], c.person.name,
+            esc(c.character ? "as " + c.character : "") + (c.eps ? ` <span style="font-family:var(--mono);font-size:11px">\u00B7 ${c.eps} ep</span>` : ""),
+            "", `data-pid="${i}"`)).join("")
+          || `<li style="animation:none"><div class="note" style="margin:14px 8px">Nobody in this cast matches.</div></li>`;
+        $("castList").querySelectorAll("[data-pid]").forEach(b =>
+          b.addEventListener("click", () => loadPerson(items[+b.dataset.pid].person, open_)));
+      };
+      $("castf").addEventListener("input", render);
+      render();
+    });
+  }catch(e){ fail(e); }
+}
+
+/* ---------- CHARACTER mode ---------- */
+async function searchCharacter(q, titleQ){
+  if (titleQ){
+    loadingNote(`Looking for \u201C${esc(q)}\u201D in ${esc(titleQ)}\u2026`);
+    try{
+      const data = await tmdb("/search/multi", { query: titleQ });
+      const item = (data.results || []).find(r => r.media_type === "movie" || r.media_type === "tv");
+      if (!item) return note(`No movie or show called <strong>${esc(titleQ)}</strong> in TMDb.`);
+      const label = item.title || item.name;
+      const cast = await fetchCast(item);
+      const fq = q.toLowerCase();
+      const hits = cast.filter(c => c.character.toLowerCase().includes(fq));
+      if (!hits.length) return note(`No character matching <strong>${esc(q)}</strong> in the cast list of
+        <strong>${esc(label)}</strong>. Wrong title match? Use the TITLE tab to pick it manually.`);
+      reset_(() => {
+        $("out").innerHTML = navHtml(`\u201C${esc(q)}\u201D in ${esc(label)}`) + `<ul class="rows">` +
+          hits.slice(0, 30).map((c, i) => rowHtml(i, c.person.profile_path, (c.person.name || "?")[0],
+            c.person.name, esc("as " + c.character), "", `data-i="${i}"`)).join("") + `</ul>`;
+        wireBack();
+        $("out").querySelectorAll("[data-i]").forEach(b =>
+          b.addEventListener("click", () => loadPerson(hits[+b.dataset.i].person, open_)));
+      });
+    }catch(e){ fail(e); }
+    return;
+  }
+
+  loadingNote(`Asking Wikidata about \u201C${esc(q)}\u201D\u2026`);
+  try{
+    const s = await wikidata({ action: "wbsearchentities", search: q, language: "en", uselang: "en", type: "item", limit: "8" });
+    const cands = (s.search || []).filter(c => /character/i.test(c.description || ""));
+    if (!cands.length) return note(`Wikidata doesn\u2019t recognise <strong>${esc(q)}</strong> as a character.
+      Add the show or movie in the second field \u2014 that path is far more reliable.`);
+    if (cands.length === 1) return resolveCharacter(cands[0], reset_);
+    reset_(() => {
+      $("out").innerHTML = navHtml(`${cands.length} characters \u2014 pick one`) + `<ul class="rows">` +
+        cands.map((c, i) => rowHtml(i, "", (c.label || "?")[0], c.label, esc(c.description || ""), "", `data-i="${i}"`)).join("") + `</ul>`;
+      wireBack();
+      $("out").querySelectorAll("[data-i]").forEach(b =>
+        b.addEventListener("click", () => resolveCharacter(cands[+b.dataset.i], open_)));
+    });
+  }catch(e){ fail(e); }
+}
+
+async function resolveCharacter(cand, pusher){
+  loadingNote(`Finding who plays ${esc(cand.label)}\u2026`);
+  try{
+    const c = await wikidata({ action: "wbgetclaims", entity: cand.id, property: "P175" }); // P175 = performer
+    const ids = (c.claims?.P175 || [])
+      .map(cl => cl.mainsnak?.datavalue?.value?.id).filter(Boolean).slice(0, 5);
+    if (!ids.length) return note(`Wikidata knows <strong>${esc(cand.label)}</strong>
+      (${esc(cand.description || "")}) but hasn\u2019t recorded a performer for them.
+      Add the show or movie in the second field and search again \u2014 that path reads the cast list directly.`);
+    const ent = await wikidata({ action: "wbgetentities", ids: ids.join("|"), props: "labels", languages: "en" });
+    const names = ids.map(id => ent.entities?.[id]?.labels?.en?.value).filter(Boolean);
+
+    const people = [];
+    for (const n of names){
+      const r = await tmdb("/search/person", { query: n });
+      if (r.results?.[0]) people.push(r.results[0]);
+      else people.push({ id: 0, name: n, profile_path: null });
+    }
+    pusher(() => {
+      $("out").innerHTML = navHtml(`${esc(cand.label)} \u2014 ${esc(cand.description || "")}`) + `<ul class="rows">` +
+        people.map((p, i) => rowHtml(i, p.profile_path, (p.name || "?")[0], p.name, "plays " + esc(cand.label), "", `data-i="${i}"`)).join("") + `</ul>`;
+      wireBack();
+      $("out").querySelectorAll("[data-i]").forEach(b => b.addEventListener("click", () => {
+        const p = people[+b.dataset.i];
+        if (p.id) loadPerson(p, open_);
+      }));
+    });
+  }catch(e){ fail(e); }
+}
+
+/* ==================== SCENE mode ==================== */
+let scene = null; // { item, label, cast, cands, candIdx, cues, hasLabels, ts, win, filesTried }
+const cueCache = new Map();
+
+function sceneKeyPanel(afterFn){
+  reset_(() => {
+    $("out").innerHTML = `
+      <div class="panel">
+        <h2>Subtitle key (one time)</h2>
+        <p>The SCENE tab fetches subtitle files through Wyzie Subs, which needs its own free key.
+           Like the TMDb key, it lives only in this browser.</p>
+        <ol>
+          <li>Redeem a free key at <a href="https://store.wyzie.io/redeem" target="_blank" rel="noopener">store.wyzie.io/redeem</a> (Gmail verification, 1,000 requests/day)</li>
+          <li>Paste it here</li>
+        </ol>
+        <div class="bar">
+          <input class="field" id="wzInput" type="password" placeholder="Wyzie key&hellip;" autocomplete="off">
+          <button class="btn primary" id="wzSave" type="button">Save</button>
+        </div>
+      </div>`;
+    $("wzSave").addEventListener("click", () => {
+      const k = $("wzInput").value.trim();
+      if (!k) return;
+      save(WYZIE_STORE, k);
+      afterFn();
+    });
+    $("wzInput").addEventListener("keydown", e => { if (e.key === "Enter") $("wzSave").click(); });
+  });
+}
+
+function scenePanel(item){
+  const isTv = item.media_type === "tv";
+  const label = `${item.title || item.name}${(item.release_date || item.first_air_date) ? " (" + (item.release_date || item.first_air_date).slice(0, 4) + ")" : ""}`;
+  const build = () => open_(() => {
+    $("out").innerHTML = navHtml(`${esc(label)} ${isTv ? "\u00B7 TV" : "\u00B7 FILM"}`) + `
+      <div class="bar">
+        ${isTv ? `<input class="field small" id="sS" type="number" min="1" placeholder="Season" aria-label="Season">
+                  <input class="field small" id="sE" type="number" min="1" placeholder="Episode" aria-label="Episode">` : ""}
+        <input class="field" id="sT" type="text" inputmode="numeric"
+          placeholder="Timestamp \u2014 1:02:33 or 34:12" aria-label="Timestamp" autocomplete="off">
+      </div>
+      <div class="actionsrow">
+        <button class="btn primary" id="sGo" type="button">Who\u2019s speaking?</button>
+      </div>
+      <div id="sOut"></div>`;
+    wireBack();
+    $("sGo").addEventListener("click", () => runScene(item, label));
+    $("sT").addEventListener("keydown", e => { if (e.key === "Enter") runScene(item, label); });
+  });
+  if (!getWyzie()) sceneKeyPanel(build);
+  else build();
+}
+
+function parseTs(t){
+  const parts = t.trim().replace(/[.,]/g, ":").split(":").map(x => x.trim()).filter(x => x !== "");
+  if (!parts.length || parts.some(p => !/^\d+$/.test(p))) return null;
+  const n = parts.map(Number);
+  if (n.length === 1) return n[0] * 60;                       // bare number = minutes
+  if (n.length === 2) return n[0] * 60 + n[1];                // mm:ss
+  return n[0] * 3600 + n[1] * 60 + n[2];                      // hh:mm:ss
+}
+function fmtTs(s){
+  s = Math.max(0, Math.round(s));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(sec).padStart(2, "0");
+}
+
+/* SRT -> [{start, end, text}] */
+function parseSrt(raw){
+  const text = raw.replace(/^\uFEFF/, "");
+  const blocks = text.split(/\r?\n\r?\n+/);
+  const cues = [];
+  const tc = /(\d{1,2}):(\d{2}):(\d{2})[,.](\d{1,3})\s*-->\s*(\d{1,2}):(\d{2}):(\d{2})[,.](\d{1,3})/;
+  for (const b of blocks){
+    const lines = b.split(/\r?\n/);
+    const ti = lines.findIndex(l => tc.test(l));
+    if (ti === -1) continue;
+    const m = lines[ti].match(tc);
+    const start = (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) + (+m[4]) / 1000;
+    const end   = (+m[5]) * 3600 + (+m[6]) * 60 + (+m[7]) + (+m[8]) / 1000;
+    const body = lines.slice(ti + 1).join("\n")
+      .replace(/<[^>]+>/g, "").replace(/\{\\[^}]*\}/g, "").trim();
+    if (body) cues.push({ start, end, text: body });
+  }
+  return cues;
+}
+
+/* speaker labels from SDH text: "WALTER:", "- Mr. White:", "[MAN 2]:" */
+const SPK_STOP = new Set(["SUBTITLE","SUBTITLES","CAPTION","CAPTIONS","TRANSLATION","TRANSLATED",
+  "SYNC","CORRECTED","WWW","HTTP","HTTPS","NOTE","WARNING","EPISODE","SEASON","PART"]);
+function speakersIn(text){
+  const out = [];
+  for (const rawLine of text.split("\n")){
+    const line = rawLine.replace(/^[\s\-\u2013\u2014]+/, "");
+    const m = line.match(/^[\[\(]?([A-Za-z][A-Za-z0-9 .'\-]{0,28}?)[\]\)]?\s*:\s+\S/);
+    if (!m) continue;
+    const label = m[1].trim().replace(/\s+/g, " ");
+    const words = label.split(" ");
+    if (words.length > 3) continue;
+    const letters = label.replace(/[^A-Za-z]/g, "");
+    if (!letters) continue;
+    const upperRatio = letters.replace(/[^A-Z]/g, "").length / letters.length;
+    const allCapitalized = words.every(w => /^[A-Z]/.test(w));
+    if (upperRatio < 0.7 && !allCapitalized) continue;
+    if (SPK_STOP.has(label.toUpperCase())) continue;
+    out.push(label.toUpperCase());
+  }
+  return out;
+}
+
+function norm(s){
+  return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+}
+const HONORIFICS = new Set(["mr","mrs","ms","mx","dr","doc","doctor","miss","sir","lady","lord",
+  "prof","professor","capt","captain","sgt","lt","det","detective","agent","officer","deputy","sheriff",
+  "uncle","aunt","king","queen","prince","princess","general","colonel","major","father","mother",
+  "brother","sister","judge","coach","nurse","president","senator","mayor","chief","reverend","pastor",
+  "young","old"]);
+function coreTokens(tokens){
+  let t = tokens.slice();
+  while (t.length > 1 && HONORIFICS.has(t[0])) t = t.slice(1);
+  return t;
+}
+function matchSpeaker(spk, cast){
+  const ns = norm(spk);
+  const st = coreTokens(ns.split(" "));
+  let best = null, bestScore = 0;
+  for (const c of cast){
+    const nc = norm(c.character);
+    if (!nc) continue;
+    const ct = nc.split(" ");
+    const cCore = coreTokens(ct);
+    let score = 0;
+    if (nc === ns || st.join(" ") === cCore.join(" ")) score = 3;
+    else if (st.every(t => ct.includes(t))) score = 2;
+    else if (cCore[0] === st[0]) score = 1;
+    else {
+      const sl = st[st.length - 1], cl = ct[ct.length - 1];
+      if (sl === cl && sl.length >= 3 && !/^\d+$/.test(sl)) score = 1;
+    }
+    if (score > bestScore){ best = c; bestScore = score; }
+  }
+  return bestScore ? best : null;
+}
+
+async function runScene(item, label){
+  const isTv = item.media_type === "tv";
+  const s = isTv ? parseInt($("sS").value, 10) : null;
+  const e = isTv ? parseInt($("sE").value, 10) : null;
+  const ts = parseTs($("sT").value || "");
+  const so = $("sOut");
+  if (isTv && (!s || !e)){ so.innerHTML = `<div class="note warn">Season and episode are both needed for TV.</div>`; return; }
+  if (ts === null){ so.innerHTML = `<div class="note warn">Timestamp didn\u2019t parse. Use 1:02:33, 34:12, or a bare number of minutes.</div>`; return; }
+
+  so.innerHTML = `<div class="note">Fetching subtitles\u2026</div>`;
+  try{
+    const cacheKey = `${item.id}-${s}-${e}`;
+    let cached = cueCache.get(cacheKey);
+    if (!cached){
+      const castP = fetchCast(item);
+      const params = { id: item.id, language: "en", format: "srt", hi: "true" };
+      if (isTv){ params.season = s; params.episode = e; }
+      const list = await wyzieSearch(params);
+      const cands = (Array.isArray(list) ? list : [])
+        .filter(c => c.url)
+        .sort((a, b) =>
+          (b.isHearingImpaired === true) - (a.isHearingImpaired === true) ||
+          (a.ai === true) - (b.ai === true) ||
+          (b.downloadCount || 0) - (a.downloadCount || 0));
+      if (!cands.length){
+        so.innerHTML = `<div class="note warn">No English subtitles exist for <strong>${esc(label)}${isTv ? ` S${s}E${e}` : ""}</strong> in the sources Wyzie reaches. That\u2019s the end of the road for this one.</div>`;
+        return;
+      }
+      // try files until one actually carries speaker labels (max 4)
+      let cues = null, used = null, tried = 0;
+      for (const cand of cands.slice(0, 4)){
+        tried++;
+        so.innerHTML = `<div class="note">Reading subtitle file ${tried}\u2026</div>`;
+        try{
+          const raw = await fetchSubtitle(cand.url);
+          const parsed = parseSrt(raw);
+          if (!parsed.length) continue;
+          const labelled = parsed.some(c => speakersIn(c.text).length);
+          if (labelled){ cues = parsed; used = cand; break; }
+          if (!cues){ cues = parsed; used = cand; } // keep best-effort fallback
+        }catch(err){ /* try next file */ }
+      }
+      if (!cues){
+        so.innerHTML = `<div class="note warn">Found ${cands.length} subtitle file(s) but none could be downloaded. Nothing more this page can do for this title.</div>`;
+        return;
+      }
+      const hasLabels = cues.some(c => speakersIn(c.text).length);
+      cached = { cues, used, tried, total: cands.length, hasLabels, cast: await castP };
+      cueCache.set(cacheKey, cached);
+    }
+
+    scene = { ...cached, item, label, isTv, s, e, ts, win: 60 };
+    if (!scene.hasLabels){
+      so.innerHTML = `<div class="note warn">The available subtitle files for
+        <strong>${esc(label)}${isTv ? ` S${s}E${e}` : ""}</strong> carry no speaker names
+        (checked ${scene.tried} of ${scene.total}), so this scene can\u2019t be resolved. As agreed \u2014 that\u2019s the honest answer.</div>`;
+      return;
+    }
+    renderScene();
+  }catch(err){
+    if (err.status === 401 || err.status === 403){
+      try{ localStorage.removeItem(WYZIE_STORE); }catch(x){}
+      so.innerHTML = `<div class="note warn">Wyzie rejected the subtitle key. Tap the SCENE tab again to enter a new one.</div>`;
+    } else if (err.status === 429){
+      so.innerHTML = `<div class="note warn">The subtitle API is rate-limiting right now. Wait a moment and try again.</div>`;
+    } else {
+      so.innerHTML = `<div class="note warn">Couldn\u2019t reach the subtitle API. Check the connection and try again.</div>`;
+    }
+  }
+}
+
+function renderScene(){
+  const so = $("sOut");
+  const { cues, cast, ts, win, used, label, isTv, s, e } = scene;
+  const lo = ts - win, hi = ts + win;
+  const windowCues = cues.filter(c => c.end >= lo && c.start <= hi);
+  const found = new Map(); // SPEAKER -> match|null
+  for (const c of windowCues) for (const spk of speakersIn(c.text))
+    if (!found.has(spk)) found.set(spk, matchSpeaker(spk, cast));
+
+  const matched = [], loose = [];
+  for (const [spk, m] of found) (m ? matched : loose).push(m ? { spk, ...m } : spk);
+
+  const head = `${esc(label)}${isTv ? ` S${s}E${e}` : ""} \u00B7 ${fmtTs(lo)}\u2013${fmtTs(hi)}`;
+  let html = `<div class="navrow" style="margin-top:26px"><span class="count">${head}</span></div>`;
+
+  if (!found.size){
+    html += `<div class="note">Nobody is labelled as speaking in this window \u2014 the file does carry
+      speaker names elsewhere, so this stretch may be silent or action-only. Try widening.</div>`;
+  } else {
+    if (matched.length){
+      html += `<ul class="rows">` + matched.map((m, i) =>
+        rowHtml(i, m.person.profile_path, (m.person.name || "?")[0], m.person.name,
+          esc("as " + m.character), "", `data-i="${i}"`)).join("") + `</ul>`;
+    }
+    if (loose.length){
+      html += `<div class="filemeta">also labelled, no cast match:</div>
+        <div class="chips">${loose.map(x => `<span class="chip">${esc(x)}</span>`).join("")}</div>`;
+    }
+  }
+  html += `<div class="actionsrow">
+      <button class="btn ghosty" id="widen" type="button">widen to \u00B1${win * 2 <= 240 ? win * 2 : 240}s</button>
+    </div>
+    <div class="filemeta">file: ${esc(used.fileName || used.release || "subtitle")}
+      \u00B7 ${esc(used.source || "")}${used.isHearingImpaired ? " \u00B7 SDH" : ""}
+      \u00B7 catches who <em>speaks</em> near the moment \u2014 silent characters are invisible to this method</div>`;
+
+  so.innerHTML = html;
+  so.querySelectorAll("[data-i]").forEach(b =>
+    b.addEventListener("click", () => loadPerson(matched[+b.dataset.i].person, open_)));
+  $("widen").addEventListener("click", () => {
+    if (scene.win < 240){ scene.win = Math.min(scene.win * 2, 240); renderScene(); }
+  });
+}
+
+/* ---------- notes / errors ---------- */
+function loadingNote(html){ $("out").innerHTML = `<div class="note">${html}</div>`; }
+function note(html){ reset_(() => { $("out").innerHTML = `<div class="note">${html}</div>`; }); }
 function fail(e){
-  if (e.status === 401){
-    showSetup("TMDb rejected the saved key \u2014 it may have been revoked. Enter it again.");
-    return;
-  }
-  $("out").innerHTML = `<div class="note warn">${
-    e.status === 429
-      ? "TMDb is rate-limiting this connection. Wait a few seconds and search again."
-      : "Couldn\u2019t reach TMDb. Check the connection, then search again."
-  }</div>`;
+  if (e.status === 401) return showSetup("TMDb rejected the saved key \u2014 it may have been revoked. Enter it again.");
+  reset_(() => {
+    $("out").innerHTML = `<div class="note warn">${
+      e.status === 429 ? "The API is rate-limiting this connection. Wait a few seconds and search again."
+                       : "Couldn\u2019t reach the API. Check the connection, then search again."}</div>`;
+  });
 }
 
-/* ---------- wire up ---------- */
-$("go").addEventListener("click", search);
-$("q").addEventListener("keydown", e => { if (e.key === "Enter") search(); });
+/* ---------- mode switching + wiring ---------- */
+let mode = "actor";
+const PLACEHOLDER = {
+  actor: "Actor's name\u2026",
+  character: "Character's name\u2026",
+  title: "Show or movie title\u2026",
+  scene: "Show or movie title\u2026",
+};
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => {
+  mode = t.dataset.mode;
+  document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x === t));
+  $("q").placeholder = PLACEHOLDER[mode];
+  $("bar2").classList.toggle("hidden", mode !== "character");
+  $("out").innerHTML = "";
+  viewStack = [];
+  scene = null;
+  $("q").focus();
+}));
+
+function go(){
+  const q = $("q").value.trim();
+  if (!q) return;
+  if (mode === "actor") searchActor(q);
+  else if (mode === "title") searchTitle(q);
+  else if (mode === "scene") searchTitle(q, item => scenePanel(item));
+  else searchCharacter(q, $("q2").value.trim());
+}
+$("go").addEventListener("click", go);
+$("q").addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+$("q2").addEventListener("keydown", e => { if (e.key === "Enter") go(); });
 
 if (getKey()) showApp(); else showSetup();
 </script>
