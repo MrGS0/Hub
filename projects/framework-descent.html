@@ -1,0 +1,1497 @@
+<!doctype html>
+<!--
+  Hub project: Framework - The Descent
+  Text-form dungeon crawler (Infinite Realm-inspired LitRPG/xianxia).
+  One action per turn, named passage choices, 11 classes, three pillars,
+  seeded grammar narration. Single file: React 18 UMD + Babel standalone.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Framework: The Descent</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #0b0814; }
+  #root { height: 100svh; }
+  .back {
+    position: fixed; top: 10px; left: 10px; z-index: 90;
+    font: 700 11px ui-monospace, Menlo, monospace; color: #67597f;
+    text-decoration: none; background: #16102799; padding: 2px 7px; border-radius: 6px;
+  }
+  .back:hover { color: #3fd6c5; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+</head>
+<body>
+<a class="back" href="../">&larr;&nbsp;hub</a>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useRef, useEffect } = React;
+
+// ============================================================
+// FRAMEWORK: THE DESCENT v1.3 — text-form dungeon crawler
+// Seeded grammar narration + optional live Claude narration
+// ============================================================
+
+const ASPECTS = [
+  { id: "flame", name: "Flame", prefix: "Flame", color: "#f97316", emoji: "🔥", riderDesc: "the target burns (25% of hit, 2 turns)", word: "embers" },
+  { id: "frost", name: "Frost", prefix: "Frost", color: "#38bdf8", emoji: "❄️", riderDesc: "the target chills: −30% damage, 2 turns", word: "rime" },
+  { id: "storm", name: "Storm", prefix: "Storm", color: "#facc15", emoji: "⚡", riderDesc: "25% chance to strike again for 40%", word: "static" },
+  { id: "blood", name: "Blood", prefix: "Blood", color: "#ef4444", emoji: "🩸", riderDesc: "you heal 15% of the damage dealt", word: "red mist" },
+  { id: "shadow", name: "Shadow", prefix: "Shadow", color: "#a78bfa", emoji: "🌑", riderDesc: "+15% crit chance on your hits", word: "gloom" },
+  { id: "void", name: "Void", prefix: "Void", color: "#818cf8", emoji: "🕳️", riderDesc: "your hits ignore armor", word: "hunger" },
+  { id: "plague", name: "Plague", prefix: "Plague", color: "#84cc16", emoji: "☠️", riderDesc: "the target is poisoned (3 turns, stacks)", word: "spores" },
+  { id: "stone", name: "Stone", prefix: "Stone", color: "#a8a29e", emoji: "🪨", riderDesc: "you gain +3 armor for 2 turns", word: "dust" },
+  { id: "gale", name: "Gale", prefix: "Gale", color: "#5eead4", emoji: "🌪️", riderDesc: "30% chance: refund half the qi cost", word: "wind" },
+  { id: "dream", name: "Dream", prefix: "Dream", color: "#f0abfc", emoji: "💤", riderDesc: "20% chance the target sleeps 1 turn", word: "haze" },
+  { id: "metal", name: "Metal", prefix: "Steel", color: "#cbd5e1", emoji: "⚙️", riderDesc: "+2 flat damage added to the hit", word: "shrapnel" },
+  { id: "tide", name: "Tide", prefix: "Tide", color: "#22d3ee", emoji: "🌊", riderDesc: "25% chance you gain 3 qi", word: "spray" },
+  { id: "sun", name: "Sun", prefix: "Sun", color: "#fde047", emoji: "☀️", riderDesc: "+20% damage vs burning targets", word: "glare" },
+  { id: "moon", name: "Moon", prefix: "Moon", color: "#e2e8f0", emoji: "🌘", riderDesc: "+30% damage vs sleeping/stunned targets", word: "pale light" },
+  { id: "thorn", name: "Thorn", prefix: "Thorn", color: "#4ade80", emoji: "🌿", always: true, riderDesc: "enemies that strike you take 2 damage", word: "briars" },
+  { id: "spirit", name: "Spirit", prefix: "Spirit", color: "#c4b5fd", emoji: "🔮", riderDesc: "your buffs & servants last +1 turn, servants +30%", word: "echoes" },
+  { id: "crystal", name: "Crystal", prefix: "Crystal", color: "#67e8f9", emoji: "💎", riderDesc: "your crits deal ×2.5 instead of ×2", word: "facets" },
+  { id: "chaos", name: "Chaos", prefix: "Chaos", color: "#f472b6", emoji: "🎲", riderDesc: "your damage swings 70–150% (avg +10%)", word: "flux" },
+  { id: "life", name: "Life", prefix: "Life", color: "#86efac", emoji: "💚", always: true, riderDesc: "+2 HP at the start of your turn", word: "green shoots" },
+  { id: "mind", name: "Mind", prefix: "Mind", color: "#fda4af", emoji: "🧠", riderDesc: "15% chance the target attacks its ally", word: "whispers" },
+];
+
+const CATS = ["STRIKE", "SWEEP", "GUARD", "FLOW"];
+
+// target: one | all | chain | random4 | self | install | place | summon
+const FORMS = [
+  { id: "bolt", name: "Bolt", noun: "bolt", icon: "🗡️", qi: 8, cd: 0, mult: 1.15, cat: "STRIKE", target: "one", desc: "strikes one enemy" },
+  { id: "beam", name: "Beam", noun: "beam", icon: "☄️", qi: 14, cd: 2, mult: 2.0, cat: "STRIKE", target: "one", desc: "heavy strike on one enemy" },
+  { id: "step", name: "Step", noun: "step", icon: "👣", qi: 9, cd: 2, mult: 1.1, cat: "STRIKE", target: "one", desc: "strike one enemy;", special: "the next enemy attack on you misses" },
+  { id: "rupture", name: "Rupture", noun: "rupture", icon: "💢", qi: 9, cd: 1, mult: 0.9, cat: "STRIKE", target: "one", desc: "strikes one enemy;", special: "consumes burn & poison: instantly deals ×2 their remaining damage" },
+  { id: "conduit", name: "Conduit", noun: "conduit", icon: "🔱", qi: 9, cd: 1, mult: 0.8, cat: "STRIKE", target: "one", desc: "strikes one enemy;", special: "+30% damage per status effect on the target" },
+  { id: "nova", name: "Nova", noun: "nova", icon: "💥", qi: 12, cd: 2, mult: 0.7, cat: "SWEEP", target: "all", desc: "hits ALL enemies" },
+  { id: "chain", name: "Chain", noun: "chain", icon: "🔗", qi: 10, cd: 1, mult: 1.0, cat: "SWEEP", target: "chain", desc: "arcs between enemies: 100% / 70% / 40%" },
+  { id: "aura", name: "Aura", noun: "aura", icon: "🌀", qi: 12, cd: 0, mult: 0.35, cat: "SWEEP", target: "install", desc: "AWAKEN once: pulses damage to all enemies at the end of every turn" },
+  { id: "volley", name: "Volley", noun: "volley", icon: "🎯", qi: 10, cd: 2, mult: 0.5, cat: "SWEEP", target: "random4", desc: "4 shots at random enemies" },
+  { id: "trap", name: "Trap", noun: "snare", icon: "⌖", qi: 10, cd: 1, mult: 1.1, cat: "SWEEP", target: "place", desc: "arms a snare:", special: "detonates on ALL enemies at the start of your next turn" },
+  { id: "pulse", name: "Pulse", noun: "pulse", icon: "📿", qi: 11, cd: 2, mult: 0.45, cat: "SWEEP", target: "all", desc: "hits ALL enemies;", special: "extends every status effect by +1 turn" },
+  { id: "eclipse", name: "Eclipse", noun: "eclipse", icon: "🌒", qi: 11, cd: 2, mult: 0.55, cat: "SWEEP", target: "all", desc: "hits ALL enemies;", special: "deals ×2 vs sleeping/stunned enemies" },
+  { id: "ward", name: "Ward", noun: "ward", icon: "🛡️", qi: 8, cd: 1, mult: 0, cat: "GUARD", target: "self", desc: "raises a strong ward (block)" },
+  { id: "mend", name: "Mend", noun: "mend", icon: "✚", qi: 9, cd: 2, mult: 0, cat: "GUARD", target: "self", desc: "heals you instantly" },
+  { id: "bloom", name: "Bloom", noun: "bloom", icon: "🌱", qi: 10, cd: 3, mult: 0, cat: "GUARD", target: "self", desc: "heals over time (3 turns)" },
+  { id: "bulwark", name: "Bulwark", noun: "bulwark", icon: "🌵", qi: 11, cd: 3, mult: 0, cat: "GUARD", target: "self", desc: "ward + attackers take thorn damage (2 turns)" },
+  { id: "blessing", name: "Blessing", noun: "blessing", icon: "✨", qi: 12, cd: 3, mult: 0, cat: "FLOW", target: "self", desc: "+25% to everything for 2 turns" },
+  { id: "mark", name: "Mark", noun: "mark", icon: "◬", qi: 7, cd: 1, mult: 0.25, cat: "FLOW", target: "one", desc: "strikes one enemy;", special: "exposes it: +25% damage taken (2 turns)" },
+  { id: "summon", name: "Summon", noun: "servant", icon: "🐲", qi: 12, cd: 3, mult: 0.45, cat: "FLOW", target: "summon", desc: "conjures a servant that attacks at the end of each turn (3 turns)" },
+  { id: "siphon", name: "Siphon", noun: "siphon", icon: "🌙", qi: 7, cd: 1, mult: 0.9, cat: "FLOW", target: "one", desc: "strikes one enemy;", special: "restores qi equal to 50% of damage" },
+  { id: "bind", name: "Bind", noun: "bind", icon: "🕸️", qi: 8, cd: 2, mult: 0.45, cat: "FLOW", target: "one", desc: "strikes one enemy;", special: "the target sleeps 1 turn" },
+  { id: "harvest", name: "Harvest", noun: "harvest", icon: "🌾", qi: 9, cd: 1, mult: 0.85, cat: "FLOW", target: "one", desc: "strikes one enemy;", special: "every kill permanently adds +2 damage to it, and heals you 8" },
+];
+
+const TIER_AT = { normal: [8, 20], aura: [6, 15] };
+const PAS_AGE = [14, 34];
+
+const MODS = [
+  { id: "split", name: "Splitting", fl: "of Splitting", cost: 0.22, desc: "also hits 2 other enemies (40%)" },
+  { id: "echo", name: "Echo", fl: "of Echoes", cost: 0.25, desc: "35% chance to trigger twice" },
+  { id: "hungerm", name: "Hunger", fl: "of Hunger", cost: 0.2, desc: "heals you 25% of damage" },
+  { id: "crush", name: "Crushing", fl: "of Crushing Weight", cost: 0.18, desc: "+60% vs chilled/sleeping enemies" },
+  { id: "breach", name: "Breaching", fl: "of Breaching", cost: 0.15, desc: "ignores armor" },
+  { id: "deton", name: "Detonation", fl: "of Detonation", cost: 0.22, desc: "on kill: 35% damage to all enemies" },
+  { id: "precis", name: "Deadly Precision", fl: "of Deadly Precision", cost: 0.18, desc: "+25% crit chance (crit = ×2)" },
+  { id: "qitheft", name: "Qi Theft", fl: "of Qi Theft", cost: 0.15, desc: "+2 essence per hit" },
+  { id: "qiinf", name: "Qi Infusion", fl: "of Qi Infusion", cost: 0.15, desc: "+4 qi per hit" },
+  { id: "sacrif", name: "Blood Sacrifice", fl: "of Blood Sacrifice", cost: -0.3, desc: "+30% budget, costs 2% max HP per use" },
+  { id: "paral", name: "Paralysis", fl: "of Paralysis", cost: 0.2, desc: "30% chance: stunned 1 turn" },
+  { id: "feedb", name: "Feedback", fl: "of Feedback", cost: 0.18, desc: "30% of damage becomes ward" },
+  { id: "frenzy", name: "Frenzy", fl: "of Frenzy", cost: 0.2, desc: "−1 turn cooldown (min 0)" },
+  { id: "exhaust", name: "Exhaustion", fl: "of Exhaustion", cost: 0.15, desc: "hit enemies deal −20% damage" },
+  { id: "hunt", name: "the Hunt", fl: "of the Hunt", cost: 0.18, desc: "+40% vs enemies below 35% HP" },
+  { id: "moment", name: "Momentum", fl: "of Momentum", cost: 0.2, desc: "grows: +2% effect per use (max +60%)" },
+  { id: "shatter", name: "Shattering", fl: "of Shattering", cost: 0.12, desc: "each hit destroys 1 enemy armor" },
+  { id: "cull", name: "Culling", fl: "of Culling", cost: 0.2, desc: "executes enemies below 10% HP" },
+  { id: "coloss", name: "Colossus", fl: "of the Colossus", cost: 0.05, desc: "+50% effect, +1 turn cooldown" },
+];
+
+const PASSIVES = [
+  { id: "vital", name: "Vitality", icon: "❤️", unit: "max HP", chunk: (lvl) => 14 + lvl * 2, desc: "raises your maximum health" },
+  { id: "iron", name: "Ironhide", icon: "🛡️", unit: "armor", chunk: () => 1, desc: "flat damage reduction from every hit" },
+  { id: "reflex", name: "Reflexes", icon: "💨", unit: "% dodge", chunk: () => 5, desc: "chance to avoid attacks entirely" },
+  { id: "flowqi", name: "Flowing Qi", icon: "🌊", unit: "qi/turn", chunk: () => 2, desc: "extra qi at the start of every turn" },
+  { id: "reserves", name: "Deep Reserves", icon: "🏺", unit: "max qi", chunk: (lvl) => 12 + lvl, desc: "expands your qi pool" },
+  { id: "attune", name: "Essence Attunement", icon: "🔶", unit: "% essence", chunk: () => 15, desc: "more essence from every kill" },
+  { id: "edge", name: "Sharpened Edge", icon: "⚔️", unit: "% STRIKE dmg", chunk: () => 8, desc: "empowers attacks and STRIKE powers" },
+];
+
+const SHOP_ITEMS = [
+  { id: "ring", name: "Iron Ring", icon: "💍", cost: 30, desc: "+1 armor, permanent", kind: "stat", stat: "armor", val: 1 },
+  { id: "pearl", name: "Vitality Pearl", icon: "🦪", cost: 35, desc: "+25 max HP, permanent", kind: "hp", val: 25 },
+  { id: "boots", name: "Swift Boots", icon: "👢", cost: 30, desc: "+5% dodge, permanent", kind: "stat", stat: "dodge", val: 5 },
+  { id: "vessel", name: "Qi Vessel", icon: "🏺", cost: 25, desc: "+15 max qi, permanent", kind: "stat", stat: "maxqi", val: 15 },
+  { id: "whet", name: "Whetstone", icon: "🪨", cost: 45, desc: "+8% ALL damage, permanent", kind: "stat", stat: "dmg", val: 8 },
+  { id: "prism", name: "Essence Prism", icon: "🔷", cost: 35, desc: "+10% essence gained, permanent", kind: "stat", stat: "essencePct", val: 10 },
+  { id: "draught", name: "Healing Draught", icon: "🧪", cost: 20, desc: "restore all HP now", kind: "heal" },
+  { id: "contract", name: "Servant Contract", icon: "📜", cost: 55, desc: "gain a Summon power (needs a free slot)", kind: "ability", form: "summon" },
+  { id: "manual", name: "Lost Manual", icon: "📖", cost: 60, desc: "gain a power chosen by the Dealmaker (needs a free slot)", kind: "ability", form: null },
+];
+
+const CLASSES = [
+  { id: "blade", name: "Blade Dancer", cat: "STRIKE", form: "bolt", mods: ["precis"], perk: { stat: "dodge", val: 3, label: "+3% dodge" }, why: "Fast single-target duelist. Every opening is a killing one." },
+  { id: "executioner", name: "Executioner", cat: "STRIKE", form: "beam", mods: ["hunt"], perk: { stat: "dmg", val: 4, label: "+4% damage" }, why: "Slow, heavy, final. Wounded prey does not recover." },
+  { id: "duelist", name: "Wind Duelist", cat: "STRIKE", form: "step", mods: ["frenzy"], perk: { stat: "dodge", val: 5, label: "+5% dodge" }, why: "Never where the blade lands. Step often, punish freely." },
+  { id: "storm", name: "Stormcaller", cat: "SWEEP", form: "chain", mods: ["qiinf"], perk: { stat: "maxqi", val: 8, label: "+8 max qi" }, why: "The crowd is one target. Qi returns with every arc." },
+  { id: "reaver", name: "Ash Reaver", cat: "SWEEP", form: "nova", mods: ["sacrif"], perk: { stat: "dmg", val: 4, label: "+4% damage" }, why: "Pays in blood, answers in fire. Rooms end quickly around you." },
+  { id: "snare", name: "Snarewright", cat: "SWEEP", form: "trap", mods: ["echo"], perk: { stat: "essencePct", val: 10, label: "+10% essence" }, why: "The fight is decided before it starts. Seed the floor, collect." },
+  { id: "warden", name: "Warden", cat: "GUARD", form: "ward", mods: [], perk: { stat: "armor", val: 1, label: "+1 armor" }, why: "Unbreakable. Outlast everything the dark sends." },
+  { id: "ascetic", name: "Iron Ascetic", cat: "GUARD", form: "mend", mods: ["coloss"], perk: { stat: "maxqi", val: 8, label: "+8 max qi" }, why: "The body is a technique. Heal deeper than they can cut." },
+  { id: "beast", name: "Beastcaller", cat: "FLOW", form: "summon", mods: [], perk: { kind: "hp", val: 10, label: "+10 max HP" }, why: "You never fight alone. Something answers when you call." },
+  { id: "leech", name: "Leech", cat: "FLOW", form: "siphon", mods: ["hungerm"], perk: { kind: "hp", val: 10, label: "+10 max HP" }, why: "Their qi, their blood, your reserves. Sustain through theft." },
+  { id: "hex", name: "Hexbinder", cat: "FLOW", form: "mark", mods: ["exhaust"], perk: { stat: "maxqi", val: 8, label: "+8 max qi" }, why: "Curse first. Everything after lands harder and hurts less." },
+];
+
+const SKILLDEF = [
+  { id: "strike", name: "[Strike Mastery]", how: "levels from attacks & STRIKE powers", fx: (l) => "+" + 4 * l + "% STRIKE & attack damage" },
+  { id: "evasion", name: "[Evasion]", how: "levels from dodging attacks", fx: (l) => "+" + 2 * l + "% dodge chance" },
+  { id: "tough", name: "[Toughness]", how: "levels from taking hits", fx: (l) => "+" + Math.floor(l / 2) + " armor" },
+  { id: "qiflow", name: "[Qi Flow]", how: "levels from cycling qi", fx: (l) => "+" + 2 * l + " qi per cycle" },
+];
+const skillNeed = (l) => 8 + 5 * l;
+
+const nCk = (n, k) => { let r = 1; for (let i = 0; i < k; i++) r = (r * (n - i)) / (i + 1); return r; };
+const TOTCOMBOS = FORMS.length * (1 + MODS.length + nCk(MODS.length, 2)) * (ASPECTS.length + nCk(ASPECTS.length, 2)) * 3 * 2;
+
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const pval = (ps, id) => { const b = ps.find((x) => x.id === id); return b ? b.value : 0; };
+const roman = (t) => (t === 2 ? " II" : t === 3 ? " III" : "");
+const uid6 = () => Math.random().toString(36).slice(2, 8);
+
+// seeded rng for deterministic room narration
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function buildPower(form, modIds, tier, level, pillar) {
+  const budget = 100 + (tier - 1) * 60 + level * 8;
+  const costSum = modIds.reduce((s, m) => s + MODS.find((x) => x.id === m).cost, 0);
+  let eff = Math.max(20, Math.round(budget * (1 - costSum)));
+  if (pillar === "tech") eff = Math.round(eff * 1.2);
+  const cf = modIds.includes("coloss") ? 1.5 : 1;
+  return {
+    id: "p" + uid6(), formId: form.id, mods: [...modIds], tier, pillar,
+    budget, costPct: Math.round(costSum * 100),
+    damage: Math.round(eff * form.mult * 0.14 * cf),
+    bonus: 0,
+    block: form.id === "ward" ? Math.round(eff * 0.11 * cf) : form.id === "bulwark" ? Math.round(eff * 0.08 * cf) : 0,
+    heal: form.id === "mend" ? Math.round(eff * 0.08 * cf) : 0,
+    regen: form.id === "bloom" ? Math.max(2, Math.round(eff * 0.035 * cf)) : 0,
+    thorns: form.id === "bulwark" ? Math.max(2, Math.round(eff * 0.04 * cf)) : 0,
+    qiCost: Math.max(3, Math.round(form.qi * (pillar === "tech" ? 1.15 : 1))),
+    cd: Math.max(0, form.cd - (modIds.includes("frenzy") ? 1 : 0) + (modIds.includes("coloss") ? 1 : 0)),
+    cdLeft: 0, uses: 0, installed: false,
+  };
+}
+
+function pname(p, aspects) {
+  const f = FORMS.find((x) => x.id === p.formId);
+  const pre = aspects.map((id, i) => {
+    const a = ASPECTS.find((x) => x.id === id);
+    return i === 0 ? a.prefix : a.prefix.toLowerCase();
+  }).join("");
+  const fl = p.mods.length ? " " + MODS.find((x) => x.id === p.mods[0]).fl : "";
+  return pre + f.noun + fl + roman(p.tier);
+}
+function pshort(p, aspects) {
+  const f = FORMS.find((x) => x.id === p.formId);
+  const pre = aspects.map((id, i) => {
+    const a = ASPECTS.find((x) => x.id === id);
+    return i === 0 ? a.prefix : a.prefix.toLowerCase();
+  }).join("");
+  return pre + f.noun + roman(p.tier);
+}
+function blendHex(h1, h2) {
+  const px = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const a = px(h1), b = px(h2);
+  return "#" + a.map((v, i) => Math.round((v + b[i]) / 2).toString(16).padStart(2, "0")).join("");
+}
+function aspColor(aspects) {
+  if (!aspects.length) return "#3fd6c5";
+  const cs = aspects.map((id) => ASPECTS.find((a) => a.id === id).color);
+  return cs.length === 1 ? cs[0] : blendHex(cs[0], cs[1]);
+}
+function powerStat(p) {
+  const dmg = p.damage + (p.bonus || 0);
+  if (p.formId === "mark") return dmg + " dmg · expose";
+  if (p.formId === "summon") return "servant " + dmg + "/turn";
+  if (p.formId === "trap") return "snare " + dmg + " to all";
+  if (p.formId === "siphon") return dmg + " dmg → qi";
+  if (p.formId === "bind") return dmg + " dmg · sleep";
+  if (p.formId === "bulwark") return p.block + " ward · " + p.thorns + " thorns";
+  if (p.formId === "bloom") return "+" + p.regen + " HP ×3t";
+  if (p.formId === "harvest") return dmg + " dmg · grows";
+  if (dmg > 0) return dmg + " dmg";
+  if (p.block > 0) return p.block + " ward";
+  if (p.heal > 0) return "+" + p.heal + " HP";
+  if (p.formId === "blessing") return "+25% · 2t";
+  return "";
+}
+const pillarLabel = (p) => (p === "class" ? "CLASS" : "TECHNIQUE");
+const tierAt = (p) => (p.formId === "aura" ? TIER_AT.aura : TIER_AT.normal);
+const maxQiOf = (g) => 50 + g.level * 4 + pval(g.passives, "reserves") + g.items.maxqi;
+
+// ---------- decision engine (slot system, v0.6 lineage) ----------
+function scoreMods(state) {
+  const owned = new Set(state.powers.flatMap((p) => p.mods));
+  const hasMulti = state.powers.some((p) => FORMS.find((f) => f.id === p.formId).cat === "SWEEP");
+  return MODS.map((m) => {
+    let s = 2 * (state.hist.mods[m.id] || 0);
+    let reason = null;
+    if (state.dmgTakenSince > state.player.maxHp * 0.5 && ["hungerm", "feedb", "paral", "exhaust"].includes(m.id)) { s += 3; reason = "heavy damage taken"; }
+    if (state.armorSeen && ["breach", "shatter"].includes(m.id) && !owned.has(m.id)) { s += 4; reason = "enemy armor detected"; }
+    if (!hasMulti && m.id === "split") { s += 2; reason = "few multi-target hits"; }
+    return { m, s, reason };
+  }).sort((a, b) => b.s - a.s || MODS.indexOf(a.m) - MODS.indexOf(b.m));
+}
+const MULTI_FORMS = ["nova", "chain", "aura", "volley", "pulse", "eclipse"];
+function modFits(modId, form) {
+  const dealsDamage = form.mult > 0;
+  if (modId === "echo" || modId === "sacrif" || modId === "moment" || modId === "coloss") return true;
+  if (modId === "frenzy") return form.id !== "aura";
+  if (modId === "split") return dealsDamage && !MULTI_FORMS.includes(form.id);
+  return dealsDamage;
+}
+function slotCount(state, pillar) { return state.powers.filter((p) => p.pillar === pillar).length; }
+function pillarUses(state, pillar) { return state.powers.filter((p) => p.pillar === pillar).reduce((s, p) => s + p.uses, 0); }
+function pickPillar(state, prefer) {
+  const c = slotCount(state, "class"), t = slotCount(state, "tech");
+  if (prefer === "class" && c < 3) return "class";
+  if (prefer === "tech" && t < 3) return "tech";
+  if (c < 3) return "class";
+  if (t < 3) return "tech";
+  return null;
+}
+function newActiveOffer(state, cat, lvl, excludeForms, kind, whyLead) {
+  const prefer = kind === "lik"
+    ? (pillarUses(state, "class") >= pillarUses(state, "tech") ? "class" : "tech")
+    : (slotCount(state, "class") <= slotCount(state, "tech") ? "class" : "tech");
+  const pillar = pickPillar(state, prefer);
+  if (!pillar) return null;
+  const owned = state.powers.map((p) => p.formId);
+  const pool = FORMS.filter((f) => f.cat === cat && !(f.id === "aura" && pillar === "tech") && !excludeForms.includes(f.id));
+  const fresh = pool.filter((f) => !owned.includes(f.id));
+  const list = fresh.length ? fresh : pool;
+  if (!list.length) return null;
+  const form = list[state.level % list.length];
+  const modScores = scoreMods(state).filter((x) => modFits(x.m.id, form));
+  const nMods = lvl >= 4 ? 2 : 1;
+  const mods = modScores.slice(0, nMods).map((x) => x.m.id);
+  const r = modScores.length && modScores[0].reason ? modScores[0].reason : null;
+  return {
+    kind, power: buildPower(form, mods, 1, lvl, pillar),
+    why: whyLead + " · " + pillarLabel(pillar).toLowerCase() + " slot " + (slotCount(state, pillar) + 1) + "/3" + (r ? " · " + r : ""),
+  };
+}
+function genPassiveOffer(state, lvl, excludeIds) {
+  const excl = excludeIds || [];
+  const owned = state.passives;
+  if (owned.length + excl.length >= 3) return null;
+  const get = (id) => owned.find((b) => b.id === id) || excl.includes(id);
+  const firstAvail = (ids) => ids.map((id) => PASSIVES.find((p) => p.id === id)).find((d) => !get(d.id));
+  let def = null, why = "";
+  if (state.dmgTakenSince > state.player.maxHp * 0.5) { def = firstAvail(["vital", "iron", "reflex"]); why = "heavy damage taken"; }
+  if (!def && pillarUses(state, "tech") > pillarUses(state, "class")) { def = firstAvail(["flowqi", "reserves"]); why = "you lean on techniques"; }
+  if (!def && (state.hist.cats["STRIKE"] || 0) >= 2) { def = firstAvail(["edge"]); why = "you favor STRIKE"; }
+  if (!def) {
+    const un = PASSIVES.filter((d) => !get(d.id));
+    if (un.length) { def = un[state.level % un.length]; why = "broadening the foundation"; }
+  }
+  if (!def) return null;
+  const chunk = def.chunk(lvl);
+  return { kind: "pas", boon: def, chunk, newValue: chunk, why: why + " · passive slot " + (owned.length + excl.length + 1) + "/3 · deepens over turns" };
+}
+function genOffers(state) {
+  const lvl = state.level + 1;
+  const offers = [];
+  const catScore = (c) => state.powers.filter((p) => FORMS.find((f) => f.id === p.formId).cat === c).length + (state.hist.cats[c] || 0);
+  const domCat = [...CATS].sort((a, b) => catScore(b) - catScore(a) || CATS.indexOf(a) - CATS.indexOf(b))[0];
+  const lowCat = CATS.filter((c) => c !== domCat).sort((a, b) => catScore(a) - catScore(b) || CATS.indexOf(a) - CATS.indexOf(b))[0];
+  const o1 = newActiveOffer(state, domCat, lvl, [], "lik", "You build " + domCat + " (" + catScore(domCat) + " picks)");
+  if (o1) offers.push(o1);
+  const o2 = newActiveOffer(state, lowCat, lvl, o1 ? [o1.power.formId] : [], "ann", lowCat + " is missing from your build");
+  if (o2) offers.push(o2);
+  const o3 = genPassiveOffer(state, lvl);
+  if (o3) offers.push(o3);
+  const usedForms = offers.filter((o) => o.power).map((o) => o.power.formId);
+  const usedBoons = offers.filter((o) => o.kind === "pas").map((o) => o.boon.id);
+  const catOrder = [domCat, ...CATS.filter((c) => c !== domCat && c !== lowCat), lowCat];
+  let padIdx = 0;
+  while (offers.length < 3 && padIdx < 8) {
+    const extra = newActiveOffer(state, catOrder[padIdx % catOrder.length], lvl, usedForms, "ann", "expanding your arsenal");
+    if (extra) { offers.push(extra); usedForms.push(extra.power.formId); }
+    else {
+      const p2 = genPassiveOffer(state, lvl, usedBoons);
+      if (p2) { offers.push(p2); usedBoons.push(p2.boon.id); }
+      else break;
+    }
+    padIdx += 1;
+  }
+  return offers;
+}
+
+// ============================================================
+// NARRATION ENGINE — seeded grammar
+// ============================================================
+
+const ROOM_KINDS = [
+  { id: "hall", name: "a ruined audience hall", details: ["Toppled pillars lean like drunk sentries", "Banners hang in colorless shreds", "Your footsteps wake echoes that take too long to die"] },
+  { id: "cavern", name: "a low natural cavern", details: ["Water ticks somewhere in the dark", "Qi crystals stud the walls with cold teal light", "The air tastes of iron and old stone"] },
+  { id: "archive", name: "a collapsed archive", details: ["Scroll racks have rotted into black lace", "A single reading stand remains upright, patient", "Dust hangs so thick the light looks solid"] },
+  { id: "garden", name: "a dead courtyard garden", details: ["Petrified trees claw at a ceiling of roots", "Something green persists in one cracked planter", "A dry fountain holds a shallow pool of shadow"] },
+  { id: "bridge", name: "a span over darkness", details: ["The chasm below swallows every sound you drop into it", "Chains as thick as your torso vanish into the gloom", "Wind rises from beneath, smelling of depth"] },
+  { id: "shrine_room", name: "a defaced shrine chamber", details: ["The idol's face has been chiseled away", "Incense ash lies in drifts, decades deep", "Prayer strips flutter without any wind"] },
+  { id: "vault", name: "a broken vault", details: ["The door was torn outward, long ago", "Empty pedestals ring the room like accusations", "Scorch marks fan across the ceiling"] },
+];
+
+const MOODS = ["The Framework's attention prickles at your neck.", "Something here remembers being alive.", "The silence has weight.", "Old qi pools in the corners like cold air.", "You are being measured.", "The dark leans in to read you."];
+
+const EKINDS = [
+  { name: "Wildwolf", emoji: "🐺", hpM: 1.0, dmgM: 1.0, pattern: ["atk", "atk", "buff"], intro: ["A wildwolf slinks from the rubble, hackles like knives.", "Yellow eyes ignite in the dark — a wildwolf, ribs showing, patience gone."] },
+  { name: "Creeper", emoji: "🕷️", hpM: 0.7, dmgM: 0.7, pattern: ["multi", "atk"], intro: ["A creeper unfolds from the ceiling on too many legs.", "Chitin whispers against stone — a creeper, low and fast."] },
+  { name: "Wraith", emoji: "👻", hpM: 0.85, dmgM: 1.0, pattern: ["atk", "block"], intro: ["A wraith seeps up through the floor, wearing someone's old grief.", "The cold arrives first. Then the wraith."] },
+  { name: "Berserker", emoji: "🪓", hpM: 1.2, dmgM: 1.4, pattern: ["buff", "big"], intro: ["A berserker rises from a squat, knuckles cracking like green wood.", "Something man-shaped and furious steps into the light, axe dragging sparks."] },
+  { name: "Witch Hunter", emoji: "🏹", hpM: 0.9, dmgM: 1.1, pattern: ["atk", "multi"], intro: ["A witch hunter nocks an arrow with insulting calm.", "From the shadows, the creak of a drawn bow. A witch hunter has been waiting."] },
+  { name: "Stonebeast", emoji: "🗿", hpM: 1.7, dmgM: 1.1, pattern: ["block", "atk"], armor: true, intro: ["A stonebeast unfolds from what you took for rubble.", "The floor shifts. It was never floor. Stonebeast."] },
+  { name: "Ashghast", emoji: "🌫️", hpM: 1.0, dmgM: 1.0, pattern: ["atk", "atk", "block"], intro: ["An ashghast coils out of the burnt air.", "Grey smoke gathers a spine and grins — ashghast."] },
+];
+const BOSS_KIND = { name: "Warden of the Iteration", emoji: "👁️", hpM: 5.0, dmgM: 1.5, pattern: ["multi", "big", "block", "buff"], intro: ["The dark opens one enormous eye. THE WARDEN OF THE ITERATION regards you the way a butcher regards the morning's work."] };
+
+const VERBS = {
+  STRIKE: ["lances into", "rips through", "punches into", "opens up"],
+  SWEEP: ["washes over", "tears across", "erupts through", "scythes through"],
+  FLOW: ["coils around", "sinks into", "threads through", "settles onto"],
+};
+const CRIT_TAGS = ["— a perfect strike", "— it finds the seam", "— the Framework approves", "— clean through the guard"];
+const KILL_LINES = ["It comes apart into essence.", "It folds, and is gone.", "What remains isn't worth naming.", "It dies without ceremony."];
+const DOOR_HINTS = {
+  combat: ["you hear claws on stone", "something breathes in there", "the smell of wet fur", "a low chittering", "metal scrapes, unhurried"],
+  treasure: ["a faint golden glow", "the mineral smell of raw essence", "silence — the expensive kind"],
+  shrine: ["incense, impossibly fresh", "a thin thread of chanting", "warm light through the door seam"],
+  boss: ["an eye-watering pressure", "the Framework itself seems to hold its breath"],
+};
+
+function rpick(rng, arr) { return arr[Math.floor(rng() * arr.length)]; }
+
+function narrateRoomProse(g) {
+  const rng = mulberry32(g.seed + g.room * 977);
+  if (g.roomKind === "boss") return "The corridor ends in a chamber built to hold exactly one thing. " + BOSS_KIND.intro[0];
+  const rk = ROOM_KINDS[Math.floor(rng() * ROOM_KINDS.length)];
+  let s = "You step into " + rk.name + ". " + rpick(rng, rk.details) + ". ";
+  if (g.roomKind === "combat") {
+    const intros = g.enemies.map((e) => rpick(rng, EKINDS.find((k) => k.name === e.name).intro));
+    s += intros.join(" ");
+  } else if (g.roomKind === "treasure") {
+    s += "No ambush comes. In the quiet, raw essence has crystallized along the seams of the room, glowing faintly gold.";
+  } else if (g.roomKind === "shrine") {
+    s += "At the far wall stands an altar the desecrators somehow missed. " + rpick(rng, MOODS);
+  }
+  return s;
+}
+
+// ============================================================
+// GAME ENGINE — one action per turn
+// ============================================================
+
+function intentOf(e) {
+  const k = e.pattern[e.pi % e.pattern.length];
+  if (k === "atk") return { kind: "atk", v: e.dmg, times: 1, label: "attack " + e.dmg };
+  if (k === "big") return { kind: "atk", v: Math.round(e.dmg * 1.8), times: 1, label: "heavy blow " + Math.round(e.dmg * 1.8) };
+  if (k === "multi") return { kind: "atk", v: Math.max(1, Math.round(e.dmg * 0.6)), times: 2, label: Math.max(1, Math.round(e.dmg * 0.6)) + "×2 flurry" };
+  if (k === "block") return { kind: "block", v: 5 + Math.round(e.dmg * 0.8), label: "guarding" };
+  return { kind: "buff", label: "empowering" };
+}
+function makeEnemy(room, bossFlag) {
+  const k = bossFlag ? BOSS_KIND : EKINDS[Math.floor(Math.random() * EKINDS.length)];
+  const hp = Math.round((10 + room * 4) * k.hpM * (0.9 + Math.random() * 0.2));
+  return {
+    uid: uid6(), name: k.name, emoji: k.emoji, boss: !!bossFlag, pattern: k.pattern, pi: Math.floor(Math.random() * k.pattern.length),
+    hp, maxHp: hp, dmg: Math.round((3 + room * 0.8) * k.dmgM),
+    armor: (k.armor || (room >= 4 && Math.random() < 0.35)) ? 1 + Math.floor(room / 6) : 0,
+    block: 0, burn: null, poison: null, chillT: 0, sleepT: 0, stunT: 0, weakenT: 0, markT: 0, confuseT: 0, intent: null,
+  };
+}
+
+function makeGame() {
+  return {
+    phase: "aspectpick", seed: (Math.random() * 1e9) | 0,
+    room: 0, roomKind: "combat", level: 0, essence: 0, thresh: 20, kills: 0, breaks: 0, turn: 0, totalTurns: 0,
+    aspects: [], className: null,
+    qi: 50,
+    items: { armor: 0, dodge: 0, maxqi: 0, dmg: 0, essencePct: 0, bought: {} },
+    player: { hp: 100, maxHp: 100, block: 0, dodgeNext: false, fortifyT: 0, buffT: 0, thornsT: 0, thorns: 0, regenT: 0, regen: 0 },
+    powers: [], passives: [], skills: {}, servants: [], traps: [],
+    enemies: [], doors: null, shrineUsed: false,
+    hist: { forms: {}, cats: {}, mods: {} },
+    dmgTakenSince: 0, armorSeen: false, bossShopDone: false,
+    offers: null, log: [], aiNarr: false, pendingProseId: null,
+  };
+}
+let LOGID = 1;
+function say(g, kind, text) { g.log.push({ id: LOGID++, kind, text }); if (g.log.length > 120) g.log.splice(0, g.log.length - 120); }
+const aliveE = (g) => g.enemies.filter((e) => e.hp > 0);
+const asp = (g, id) => g.aspects.includes(id);
+const ampAll = (g) => (g.player.buffT > 0 ? 1.25 : 1) * (1 + 0.08 * g.breaks + g.items.dmg / 100);
+const strikeAmp = (g) => 1 + 0.04 * skillLvl(g, "strike") + pval(g.passives, "edge") / 100;
+function skillLvl(g, id) { return g.skills[id] ? g.skills[id].lvl : 0; }
+function skillXp(g, id, amt) {
+  if (!g.skills[id]) { g.skills[id] = { lvl: 1, xp: 0 }; say(g, "sys", "SKILL AWAKENED: " + SKILLDEF.find((s) => s.id === id).name); return; }
+  const s = g.skills[id];
+  if (s.lvl >= 9) return;
+  s.xp += amt;
+  while (s.xp >= skillNeed(s.lvl) && s.lvl < 9) { s.xp -= skillNeed(s.lvl); s.lvl += 1; say(g, "sys", SKILLDEF.find((x) => x.id === id).name + " → Lv " + s.lvl); }
+}
+const statusCount = (e) => {
+  let c = 0;
+  if (e.burn && e.burn.t > 0) c++;
+  if (e.poison && e.poison.t > 0) c++;
+  if (e.chillT > 0) c++;
+  if (e.sleepT > 0 || e.stunT > 0) c++;
+  if (e.markT > 0) c++;
+  if (e.weakenT > 0) c++;
+  return c;
+};
+
+function hitEnemy(g, e, dmgIn, p, opts) {
+  if (!e || e.hp <= 0) return 0;
+  const o = opts || {};
+  let d = dmgIn;
+  const mods = p ? p.mods : [];
+  const withR = !!p;
+  const critC = 0.05 + (withR && asp(g, "shadow") ? 0.15 : 0) + (mods.includes("precis") ? 0.25 : 0);
+  const crit = Math.random() < critC;
+  if (crit) d *= withR && asp(g, "crystal") ? 2.5 : 2;
+  if (withR && asp(g, "chaos")) d *= 0.7 + Math.random() * 0.8;
+  if (withR && asp(g, "sun") && e.burn && e.burn.t > 0) d *= 1.2;
+  if (withR && asp(g, "moon") && (e.sleepT > 0 || e.stunT > 0)) d *= 1.3;
+  if (mods.includes("moment") && p.uses) d *= 1 + Math.min(0.02 * p.uses, 0.6);
+  if (mods.includes("crush") && (e.chillT > 0 || e.sleepT > 0)) d *= 1.6;
+  if (mods.includes("hunt") && e.hp / e.maxHp < 0.35) d *= 1.4;
+  if (e.markT > 0) d *= 1.25;
+  if (withR && asp(g, "metal")) d += 2;
+  const pierce = (withR && asp(g, "void")) || mods.includes("breach");
+  if (!pierce) d -= e.armor;
+  d = Math.max(1, Math.round(d));
+  if (e.block > 0) { const abs = Math.min(e.block, d); e.block -= abs; d -= abs; }
+  e.hp -= d;
+  if (o.narr !== false) {
+    const rng = mulberry32(g.seed + g.totalTurns * 131 + e.uid.charCodeAt(0));
+    const verb = withR ? rpick(rng, VERBS[FORMS.find((f) => f.id === p.formId).cat] || VERBS.STRIKE) : "cracks against";
+    const name = withR ? "Your " + pshort(p, g.aspects) : "Your strike";
+    say(g, "you", name + " " + verb + " the " + e.name.toLowerCase() + " — " + d + (crit ? " " + rpick(rng, CRIT_TAGS) : "") + ".");
+    if (e.hp <= 0) say(g, "you", rpick(rng, KILL_LINES));
+  }
+  if (crit && o.narr === false) say(g, "you", "✦ " + d + " to the " + e.name.toLowerCase() + ".");
+  if (mods.includes("shatter") && e.armor > 0) { e.armor -= 1; }
+  if (mods.includes("cull") && e.hp > 0 && e.hp / e.maxHp < 0.1) { e.hp = 0; say(g, "you", "The " + e.name.toLowerCase() + " is culled where it stands."); }
+  if (withR) {
+    if (asp(g, "flame")) e.burn = { t: 2, v: Math.max(2, Math.round(d * 0.25)) };
+    if (asp(g, "frost")) e.chillT = 2;
+    if (asp(g, "plague")) e.poison = { t: 3, v: Math.max(2, Math.round(d * 0.15)) + (e.poison ? e.poison.v : 0) };
+    if (asp(g, "blood")) { const h = Math.round(d * 0.15); if (h > 0) g.player.hp = Math.min(g.player.maxHp, g.player.hp + h); }
+    if (asp(g, "dream") && Math.random() < 0.2 && e.hp > 0) { e.sleepT = 1; say(g, "you", "The " + e.name.toLowerCase() + " sways, eyes fogging — asleep."); }
+    if (asp(g, "stone")) g.player.fortifyT = 2;
+    if (asp(g, "tide") && Math.random() < 0.25) g.qi = Math.min(maxQiOf(g), g.qi + 3);
+    if (asp(g, "mind") && Math.random() < 0.15 && e.hp > 0) { e.confuseT = 1; say(g, "you", "Whispers hook into the " + e.name.toLowerCase() + "'s skull. It turns on its own."); }
+    if (asp(g, "storm") && Math.random() < 0.25 && !o.noZap && e.hp > 0) d += hitEnemy(g, e, dmgIn * 0.4, p, { noZap: true, narr: false });
+  }
+  if (mods.includes("hungerm")) g.player.hp = Math.min(g.player.maxHp, g.player.hp + Math.round(d * 0.25));
+  if (mods.includes("feedb")) g.player.block += Math.max(1, Math.round(d * 0.3));
+  if (mods.includes("qitheft")) g.essence += 2;
+  if (mods.includes("qiinf")) g.qi = Math.min(maxQiOf(g), g.qi + 4);
+  if (mods.includes("exhaust")) e.weakenT = 2;
+  if (mods.includes("paral") && Math.random() < 0.3 && e.hp > 0) { e.stunT = 1; say(g, "you", "The " + e.name.toLowerCase() + " locks up, paralyzed."); }
+  return d;
+}
+
+function killReward(g) { return Math.round((6 + g.room * 1.5) * (1 + (pval(g.passives, "attune") + g.items.essencePct) / 100)); }
+function processDeaths(g) {
+  const detP = g.powers.find((p) => p.mods.includes("deton"));
+  g.enemies.forEach((e) => {
+    if (e.hp <= 0 && !e.dead) {
+      e.dead = true;
+      g.kills += 1;
+      const ev = killReward(g);
+      g.essence += ev;
+      say(g, "loot", "+" + ev + " essence.");
+      if (detP && detP.damage > 0) {
+        const bd = Math.max(1, Math.round(detP.damage * 0.35));
+        const others = aliveE(g);
+        if (others.length) { say(g, "you", "The corpse detonates."); others.forEach((x) => hitEnemy(g, x, bd, detP, { narr: false })); }
+      }
+    }
+  });
+}
+function maybeTier(g, p) {
+  const th = tierAt(p);
+  const up = (t) => {
+    const nb = buildPower(FORMS.find((f) => f.id === p.formId), p.mods, t, g.level, p.pillar);
+    Object.assign(p, nb, { id: p.id, uses: p.uses, bonus: p.bonus, cdLeft: p.cdLeft, installed: p.installed });
+    say(g, "sys", "⬆ " + pname(p, g.aspects) + " — practiced into TIER" + roman(t) + ".");
+  };
+  if (p.tier === 1 && p.uses >= th[0]) up(2);
+  else if (p.tier === 2 && p.uses >= th[1]) up(3);
+}
+
+function damagePlayer(g, raw, attacker) {
+  const pl = g.player;
+  if (pl.dodgeNext) { pl.dodgeNext = false; say(g, "foe", "It cuts only the space you just left."); skillXp(g, "evasion", 3); return; }
+  const dodge = 0.05 + 0.02 * skillLvl(g, "evasion") + (pval(g.passives, "reflex") + g.items.dodge) / 100;
+  if (Math.random() < dodge) { say(g, "foe", "You slip aside — a miss."); skillXp(g, "evasion", 3); return; }
+  const reflect = (pl.thornsT > 0 ? pl.thorns : 0) + (asp(g, "thorn") ? 2 : 0);
+  if (reflect > 0 && attacker && attacker.hp > 0) { attacker.hp -= reflect; say(g, "you", "Thorns bite back for " + reflect + "."); }
+  const armor = (pl.fortifyT > 0 ? 3 : 0) + Math.floor(skillLvl(g, "tough") / 2) + pval(g.passives, "iron") + g.items.armor;
+  let d = Math.max(1, Math.round(raw) - armor);
+  if (pl.block > 0) { const abs = Math.min(pl.block, d); pl.block -= abs; d -= abs; if (abs > 0 && d === 0) { say(g, "foe", "Your ward takes it — " + abs + " absorbed."); } }
+  if (d > 0) {
+    pl.hp -= d;
+    g.dmgTakenSince += d;
+    say(g, "foe", "It connects — you take " + d + ".");
+    skillXp(g, "tough", 2);
+    if (pl.hp > 0 && pl.hp / pl.maxHp < 0.3) say(g, "warn", "Your vision narrows. " + Math.round(pl.hp) + " HP.");
+  }
+}
+
+function enemiesAct(g) {
+  aliveE(g).forEach((e) => {
+    e.block = 0;
+    if (e.burn && e.burn.t > 0) { e.hp -= e.burn.v; say(g, "you", "The " + e.name.toLowerCase() + " burns for " + e.burn.v + "."); e.burn.t -= 1; }
+    if (e.poison && e.poison.t > 0) { e.hp -= e.poison.v; say(g, "you", "Poison works through the " + e.name.toLowerCase() + " — " + e.poison.v + "."); e.poison.t -= 1; }
+    if (e.hp <= 0) return;
+    if (e.sleepT > 0 || e.stunT > 0) {
+      say(g, "foe", "The " + e.name.toLowerCase() + " is " + (e.sleepT > 0 ? "lost in sleep" : "locked rigid") + " and does nothing.");
+      if (e.sleepT > 0) e.sleepT -= 1;
+      if (e.stunT > 0) e.stunT -= 1;
+    } else {
+      const it = e.intent;
+      const wMul = (e.weakenT > 0 ? 0.8 : 1) * (e.chillT > 0 ? 0.7 : 1);
+      if (it.kind === "atk") {
+        for (let i = 0; i < it.times; i++) {
+          if (e.confuseT > 0) {
+            const other = aliveE(g).find((x) => x !== e);
+            if (other) { other.hp -= it.v; say(g, "foe", "Confused, the " + e.name.toLowerCase() + " savages the " + other.name.toLowerCase() + " for " + it.v + "!"); }
+            else damagePlayer(g, it.v * wMul, e);
+          } else {
+            say(g, "foe", "The " + e.name.toLowerCase() + " " + (it.times > 1 ? "strikes in a flurry" : it.v > e.dmg ? "brings down a heavy blow" : "attacks") + ".");
+            damagePlayer(g, it.v * wMul, e);
+          }
+        }
+      } else if (it.kind === "block") { e.block += it.v; say(g, "foe", "The " + e.name.toLowerCase() + " sets itself behind a guard."); }
+      else { e.dmg += 2; say(g, "foe", "The " + e.name.toLowerCase() + " swells with borrowed fury (+2 dmg)."); }
+      e.pi += 1;
+      ["chillT", "weakenT", "markT", "confuseT"].forEach((k) => { if (e[k] > 0) e[k] -= 1; });
+    }
+    e.intent = intentOf(e);
+  });
+  processDeaths(g);
+}
+
+function startTurn(g) {
+  g.turn += 1;
+  g.totalTurns += 1;
+  const pl = g.player;
+  pl.block = 0;
+  if (pl.regenT > 0) { pl.hp = Math.min(pl.maxHp, pl.hp + pl.regen); pl.regenT -= 1; }
+  if (asp(g, "life")) pl.hp = Math.min(pl.maxHp, pl.hp + 2);
+  g.qi = Math.min(maxQiOf(g), g.qi + 10 + pval(g.passives, "flowqi"));
+  g.powers.forEach((p) => { if (p.cdLeft > 0) p.cdLeft -= 1; });
+  if (g.traps.length) {
+    g.traps.forEach((t) => {
+      say(g, "you", "Your snare detonates.");
+      aliveE(g).forEach((e) => hitEnemy(g, e, t.dmg, t.p, { narr: false }));
+      say(g, "you", "The blast tears through everything standing.");
+      if (t.p) { t.p.uses += 1; maybeTier(g, t.p); }
+    });
+    g.traps = [];
+    processDeaths(g);
+  }
+  g.passives.forEach((b) => {
+    b.age += 1;
+    const th = b.tier === 1 ? PAS_AGE[0] : b.tier === 2 ? PAS_AGE[1] : null;
+    if (th && b.age >= th) {
+      const def = PASSIVES.find((d) => d.id === b.id);
+      const chunk = def.chunk(g.level);
+      b.tier += 1;
+      b.value += chunk;
+      if (b.id === "vital") { pl.maxHp += chunk; pl.hp = Math.min(pl.maxHp, pl.hp + chunk); }
+      say(g, "sys", "⬆ [" + def.name + "] deepens → TIER" + roman(b.tier) + ".");
+    }
+  });
+}
+
+function endOfAction(g) {
+  // installed auras pulse + servants act, then enemies respond, then next turn begins
+  g.powers.filter((p) => p.installed).forEach((p) => {
+    const list = aliveE(g);
+    if (list.length) {
+      const base = (p.damage + (p.bonus || 0)) * ampAll(g);
+      say(g, "you", "Your " + pshort(p, g.aspects) + " pulses outward.");
+      list.forEach((e) => hitEnemy(g, e, base, p, { narr: false }));
+      p.uses += 1;
+      maybeTier(g, p);
+    }
+  });
+  g.servants = g.servants.filter((s) => s.t > 0);
+  g.servants.forEach((s) => {
+    const e = aliveE(g)[0];
+    if (e) { say(g, "you", "Your servant lunges."); hitEnemy(g, e, s.dmg, g.powers.find((x) => x.id === s.pid) || null, { narr: false }); }
+    s.t -= 1;
+  });
+  processDeaths(g);
+  if (checkRoomState(g)) return;
+  enemiesAct(g);
+  if (g.player.hp <= 0) { g.player.hp = 0; playerDeath(g); return; }
+  if (checkRoomState(g)) return;
+  startTurn(g);
+  if (g.player.hp <= 0) { g.player.hp = 0; playerDeath(g); }
+}
+
+function playerDeath(g) {
+  g.phase = "dead";
+  say(g, "warn", "The dark takes its due. Somewhere, the Framework begins counting again.");
+}
+
+function checkRoomState(g) {
+  if (g.phase !== "run") return true;
+  if (aliveE(g).length) return false;
+  const heal = Math.round(g.player.maxHp * 0.2);
+  g.player.hp = Math.min(g.player.maxHp, g.player.hp + heal);
+  say(g, "prose", "Stillness returns. You breathe, and the room lets you. (+" + heal + " HP)");
+  g.servants = [];
+  g.traps = [];
+  g.powers.forEach((p) => (p.installed = false));
+  if (!checkLevel(g)) afterCombat(g);
+  return true;
+}
+
+function checkLevel(g) {
+  if (g.essence < g.thresh) return false;
+  if (g.level + 1 === 5 && g.aspects.length === 1) {
+    g.phase = "aspectpick";
+    say(g, "sys", "[ LEVEL 5 ] Your cultivation deepens. Choose a second aspect.");
+    return true;
+  }
+  const offers = genOffers(g);
+  if (offers.length) {
+    g.offers = offers;
+    g.phase = "levelup";
+    say(g, "sys", "[ LEVEL " + (g.level + 1) + " ] The Framework opens three doors in your mind.");
+    return true;
+  }
+  // all slots full — breakthrough
+  levelBump(g);
+  g.breaks += 1;
+  g.player.maxHp += 20;
+  g.player.hp = Math.min(g.player.maxHp, g.player.hp + 20);
+  say(g, "sys", "◆ BREAKTHROUGH — your whole being condenses. +8% damage, +20 max HP.");
+  return checkLevel(g) ? true : false;
+}
+function levelBump(g) {
+  g.level += 1;
+  g.player.maxHp += 8;
+  g.player.hp = Math.min(g.player.maxHp, g.player.hp + Math.round((g.player.maxHp - g.player.hp) * 0.4));
+  g.essence = Math.max(0, g.essence - g.thresh);
+  g.thresh = Math.round(g.thresh * 1.35) + 6;
+  g.dmgTakenSince = 0;
+}
+function applyChoiceG(g, offer) {
+  if (offer.kind === "pas") {
+    g.passives.push({ id: offer.boon.id, tier: 1, value: offer.newValue, age: 0 });
+    levelBump(g);
+    if (offer.boon.id === "vital") { g.player.maxHp += offer.chunk; g.player.hp = Math.min(g.player.maxHp, g.player.hp + offer.chunk); }
+    say(g, "sys", "▸ [" + offer.boon.name + "] settles into your foundation. +" + offer.chunk + " " + offer.boon.unit + ".");
+  } else {
+    const p = { ...offer.power, cdLeft: 0 };
+    const form = FORMS.find((f) => f.id === p.formId);
+    g.hist.forms[p.formId] = (g.hist.forms[p.formId] || 0) + 1;
+    g.hist.cats[form.cat] = (g.hist.cats[form.cat] || 0) + 1;
+    p.mods.forEach((m) => (g.hist.mods[m] = (g.hist.mods[m] || 0) + 1));
+    g.powers.push(p);
+    levelBump(g);
+    say(g, "sys", "▸ " + pname(p, g.aspects) + " is yours now. It hums, unpracticed.");
+  }
+  g.offers = null;
+  if (!checkLevel(g)) {
+    if (aliveE(g).length) g.phase = "run";
+    else afterCombat(g);
+  }
+}
+function applyAspectG(g, id) {
+  const a = ASPECTS.find((x) => x.id === id);
+  g.aspects.push(id);
+  if (g.level === 0 && !g.className) {
+    g.phase = "classpick";
+    say(g, "prose", "You choose the Path of " + a.name + ". " + a.emoji + " Every power you ever hold will carry it.");
+    return;
+  }
+  levelBump(g);
+  say(g, "sys", "◈ Second aspect: " + a.name + ". Every power in you is reshaped and renamed.");
+  if (!checkLevel(g)) {
+    if (aliveE(g).length) g.phase = "run";
+    else afterCombat(g);
+  }
+}
+function applyClassG(g, cls) {
+  const form = FORMS.find((f) => f.id === cls.form);
+  g.powers = [buildPower(form, cls.mods, 1, 1, "class")];
+  g.hist.cats[cls.cat] = 1;
+  g.hist.forms[form.id] = 1;
+  cls.mods.forEach((m) => (g.hist.mods[m] = (g.hist.mods[m] || 0) + 1));
+  if (cls.perk.kind === "hp") { g.player.maxHp += cls.perk.val; g.player.hp += cls.perk.val; }
+  else g.items[cls.perk.stat] += cls.perk.val;
+  g.className = cls.name;
+  levelBump(g);
+  say(g, "sys", "[ CLASS ] " + cls.name + " · " + cls.perk.label + ". First power: " + pname(g.powers[0], g.aspects) + ".");
+}
+
+const PASSAGE_TITLES = ["a bone-strewn tunnel", "a lantern-lit stair", "a flooded gallery", "an archway of black roots", "a corridor of leaning statues", "a crack in the living rock", "a bridge of chained slabs", "a moss-eaten colonnade", "a doorway hung with prayer strips", "a rusted iron gate", "a spiral ramp worn smooth", "a hall of empty cages"];
+function offerDoors(g) {
+  g.phase = "doors";
+  const nextRoom = g.room + 1;
+  const rng = mulberry32(g.seed + nextRoom * 313);
+  if (nextRoom % 5 === 0) {
+    g.doors = [{ kind: "boss", title: "the sealed gate", hint: rpick(rng, DOOR_HINTS.boss) }];
+    say(g, "prose", "Every other way has crumbled shut. Only the sealed gate remains, and behind it, " + g.doors[0].hint + ".");
+    return;
+  }
+  const kinds = ["combat", "combat", "combat", "combat", "treasure", "shrine"];
+  const n = nextRoom >= 3 && rng() < 0.35 ? 3 : 2;
+  const titles = [...PASSAGE_TITLES];
+  g.doors = [];
+  for (let i = 0; i < n; i++) {
+    let k = kinds[Math.floor(rng() * kinds.length)];
+    if (i > 0 && k !== "combat" && g.doors.some((d) => d.kind === k)) k = "combat";
+    const title = titles.splice(Math.floor(rng() * titles.length), 1)[0];
+    g.doors.push({ kind: k, title, hint: rpick(rng, DOOR_HINTS[k]) });
+  }
+  say(g, "prose", "The way splits. " + g.doors.map((d) => "Through " + d.title + ": " + d.hint + ".").join(" "));
+}
+function enterDoor(g, idx) {
+  const door = g.doors[Math.min(idx, g.doors.length - 1)];
+  g.doors = null;
+  g.room += 1;
+  g.turn = 0;
+  g.roomKind = door.kind;
+  g.shrineUsed = false;
+  g.bossShopDone = false;
+  say(g, "sys", "— ROOM " + g.room + (door.kind === "boss" ? " · THE WARDEN" : "") + " —");
+  if (door.kind === "combat" || door.kind === "boss") {
+    const boss = door.kind === "boss";
+    const n = boss ? 1 : Math.min(1 + Math.floor(g.room / 4), 3);
+    g.enemies = [];
+    for (let i = 0; i < n; i++) g.enemies.push(makeEnemy(g.room, boss));
+    g.enemies.forEach((e) => (e.intent = intentOf(e)));
+    g.phase = "run";
+    startTurn(g);
+  } else {
+    g.enemies = [];
+    g.phase = door.kind; // 'treasure' | 'shrine'
+  }
+  say(g, "prose", narrateRoomProse(g));
+  g.pendingProseId = g.log[g.log.length - 1].id;
+  if (door.kind === "treasure") {
+    const ev = 12 + g.room * 2;
+    g.essence += ev;
+    say(g, "loot", "You gather +" + ev + " essence from the seams.");
+  }
+}
+function leaveTreasure(g) {
+  if (!checkLevel(g)) offerDoors(g);
+}
+function shrineChoice(g, which) {
+  g.shrineUsed = true;
+  if (which === "meditate") {
+    g.items.maxqi += 10;
+    say(g, "prose", "You sit before the faceless idol and breathe until the room breathes with you. Your qi sea widens. (+10 max qi)");
+  } else if (which === "blood") {
+    const cost = 12;
+    g.player.hp = Math.max(1, g.player.hp - cost);
+    g.items.dmg += 6;
+    say(g, "prose", "You open your palm over the altar. It drinks, and something in you sharpens. (−" + cost + " HP, +6% damage, permanent)");
+  }
+  if (!checkLevel(g)) offerDoors(g);
+}
+
+function afterCombat(g) {
+  if (g.roomKind === "boss" && !g.bossShopDone) {
+    g.bossShopDone = true;
+    afterBossShop(g);
+    return;
+  }
+  offerDoors(g);
+}
+
+// Dealmaker after boss
+function afterBossShop(g) {
+  g.phase = "shop";
+  say(g, "prose", "In the Warden's absence, a lantern you never saw lit reveals a figure of polite smoke. The Dealmaker spreads his wares.");
+}
+function shopStockG(g) {
+  const room = pickPillar(g, "tech") !== null;
+  const valid = SHOP_ITEMS.filter((it) => it.kind !== "ability" || room);
+  const out = [];
+  let i = g.room % valid.length;
+  while (out.length < 4 && out.length < valid.length) {
+    const it = valid[i % valid.length];
+    if (!out.includes(it)) out.push(it);
+    i += 1;
+  }
+  return out;
+}
+function buyItemG(g, item) {
+  if (g.essence < item.cost) return false;
+  g.essence -= item.cost;
+  if (item.kind === "stat") { g.items[item.stat] += item.val; g.items.bought[item.id] = (g.items.bought[item.id] || 0) + 1; }
+  else if (item.kind === "hp") { g.player.maxHp += item.val; g.player.hp = Math.min(g.player.maxHp, g.player.hp + item.val); }
+  else if (item.kind === "heal") { g.player.hp = g.player.maxHp; }
+  else if (item.kind === "ability") {
+    const pillar = pickPillar(g, "tech");
+    if (!pillar) { g.essence += item.cost; return false; }
+    const pool = FORMS.filter((f) => f.mult > 0);
+    const form = item.form ? FORMS.find((f) => f.id === item.form) : pool[g.room % pool.length];
+    const p = buildPower(form, [], 1, g.level, pillar);
+    g.powers.push(p);
+    say(g, "sys", "📖 " + pname(p, g.aspects) + " unfurls in your mind.");
+  }
+  say(g, "loot", "Bought: " + item.name + ".");
+  return true;
+}
+
+// player actions
+function actAttack(g) {
+  const e = aliveE(g)[0];
+  if (!e) return;
+  const dmg = (4 + Math.max(1, g.level) * 1.6) * strikeAmp(g) * ampAll(g);
+  skillXp(g, "strike", 1);
+  hitEnemy(g, e, dmg, null);
+  processDeaths(g);
+  endOfAction(g);
+}
+function actCycle(g) {
+  skillXp(g, "qiflow", 3);
+  const gain = 16 + 2 * skillLvl(g, "qiflow");
+  g.qi = Math.min(maxQiOf(g), g.qi + gain);
+  g.essence += 1;
+  say(g, "you", "You plant your stance and cycle. Qi floods back into the sea. (+" + gain + " qi)");
+  endOfAction(g);
+}
+function actPower(g, pid, targetUid) {
+  const p = g.powers.find((x) => x.id === pid);
+  if (!p || p.cdLeft > 0 || p.installed || g.qi < p.qiCost) return null;
+  const f = FORMS.find((x) => x.id === p.formId);
+  const alive = aliveE(g);
+  let target = null;
+  if (f.target === "one") {
+    if (alive.length === 1) target = alive[0];
+    else if (targetUid) target = alive.find((e) => e.uid === targetUid);
+    if (!target) return "needTarget";
+  }
+  g.qi -= p.qiCost;
+  p.uses += 1;
+  p.cdLeft = p.cd + 1; // +1 because it ticks down at next startTurn
+  const mFac = p.mods.includes("moment") ? 1 + Math.min(0.02 * p.uses, 0.6) : 1;
+  const sp = asp(g, "spirit") ? 1 : 0;
+  const pl = g.player;
+  let base = (p.damage + (p.bonus || 0)) * ampAll(g);
+  if (f.cat === "STRIKE") { base *= strikeAmp(g); skillXp(g, "strike", 2); }
+  const resolve = () => {
+    if (f.target === "self") {
+      if (p.formId === "ward") { const v = Math.round(p.block * ampAll(g) * mFac); pl.block += v; say(g, "you", "Your " + pshort(p, g.aspects) + " rises around you — " + v + " ward."); }
+      else if (p.formId === "bulwark") { const v = Math.round(p.block * ampAll(g) * mFac); pl.block += v; pl.thornsT = 2 + sp; pl.thorns = p.thorns; say(g, "you", "Your " + pshort(p, g.aspects) + " bristles into place — " + v + " ward, thorns waiting."); }
+      else if (p.formId === "mend") { const h = Math.round(p.heal * ampAll(g) * mFac); pl.hp = Math.min(pl.maxHp, pl.hp + h); say(g, "you", "Your " + pshort(p, g.aspects) + " knits you together. (+" + h + " HP)"); }
+      else if (p.formId === "bloom") { pl.regenT = 3 + sp; pl.regen = Math.round(p.regen * ampAll(g) * mFac); say(g, "you", "Your " + pshort(p, g.aspects) + " takes root beneath your skin."); }
+      else if (p.formId === "blessing") { pl.buffT = 2 + sp; say(g, "you", "Your " + pshort(p, g.aspects) + " settles over you like armor made of intent. (+25%)"); }
+      return;
+    }
+    if (f.target === "install") { p.installed = true; say(g, "you", "Your " + pshort(p, g.aspects) + " awakens and begins to turn around you."); return; }
+    if (f.target === "place") { g.traps.push({ dmg: base, p }); say(g, "you", "You seed a " + pshort(p, g.aspects) + " into the floor. It waits."); return; }
+    if (f.target === "summon") { g.servants.push({ dmg: Math.round(base * (sp ? 1.3 : 1)), t: 3 + sp, pid: p.id }); say(g, "you", "Your " + pshort(p, g.aspects) + " tears itself into being beside you."); return; }
+    if (f.target === "all") {
+      say(g, "you", "Your " + pshort(p, g.aspects) + " detonates outward.");
+      alive.forEach((e) => {
+        if (p.formId === "eclipse") hitEnemy(g, e, base * (e.sleepT > 0 || e.stunT > 0 ? 2 : 1), p, { narr: false });
+        else hitEnemy(g, e, base, p, { narr: false });
+        if (p.formId === "pulse") {
+          if (e.burn && e.burn.t > 0) e.burn.t += 1;
+          if (e.poison && e.poison.t > 0) e.poison.t += 1;
+          ["chillT", "sleepT", "markT", "weakenT"].forEach((k) => { if (e[k] > 0) e[k] += 1; });
+        }
+      });
+      return;
+    }
+    if (f.target === "chain") {
+      say(g, "you", "Your " + pshort(p, g.aspects) + " leaps hungrily between them.");
+      [1, 0.7, 0.4].forEach((ratio, i) => { if (alive[i]) hitEnemy(g, alive[i], base * ratio, p, { narr: false }); });
+      return;
+    }
+    if (f.target === "random4") {
+      say(g, "you", "Your " + pshort(p, g.aspects) + " scatters into seeking shards.");
+      for (let i = 0; i < 4; i++) { const a = aliveE(g); if (!a.length) break; hitEnemy(g, a[Math.floor(Math.random() * a.length)], base, p, { narr: false }); }
+      return;
+    }
+    const e = target && target.hp > 0 ? target : aliveE(g)[0];
+    if (!e) return;
+    if (p.formId === "conduit") hitEnemy(g, e, base * (1 + 0.3 * statusCount(e)), p);
+    else if (p.formId === "rupture") {
+      const pend = (e.burn && e.burn.t > 0 ? e.burn.v * e.burn.t : 0) + (e.poison && e.poison.t > 0 ? e.poison.v * e.poison.t : 0);
+      hitEnemy(g, e, base, p);
+      if (pend > 0 && e.hp > 0) { const ex = Math.round(pend * 2); e.hp -= ex; e.burn = null; e.poison = null; say(g, "you", "Every festering wound goes off at once — " + ex + "."); }
+    }
+    else if (p.formId === "mark") { hitEnemy(g, e, base, p); if (e.hp > 0) { e.markT = 2; say(g, "you", "The " + e.name.toLowerCase() + " is exposed — every hit will find it."); } }
+    else if (p.formId === "bind") { hitEnemy(g, e, base, p); if (e.hp > 0) { e.sleepT = 1; say(g, "you", "Threads cinch tight. The " + e.name.toLowerCase() + " cannot move."); } }
+    else if (p.formId === "siphon") { const d = hitEnemy(g, e, base, p); const q = Math.round(d * 0.5); g.qi = Math.min(maxQiOf(g), g.qi + q); say(g, "you", "You drink back " + q + " qi through the wound."); }
+    else if (p.formId === "harvest") {
+      hitEnemy(g, e, base, p);
+      if (e.hp <= 0) { p.bonus = (p.bonus || 0) + 2; pl.hp = Math.min(pl.maxHp, pl.hp + 8); say(g, "sys", "🌾 The harvest grows. +2 damage, permanently."); }
+    }
+    else {
+      hitEnemy(g, e, base, p);
+      if (p.formId === "step") { pl.dodgeNext = true; say(g, "you", "You end the step where no blade expects you."); }
+      if (p.mods.includes("split")) { const others = aliveE(g).filter((x) => x !== e).slice(0, 2); others.forEach((x) => hitEnemy(g, x, base * 0.4, p, { narr: false })); }
+    }
+  };
+  resolve();
+  if (p.mods.includes("echo") && Math.random() < 0.35) { say(g, "you", "— and it echoes."); resolve(); }
+  if (p.mods.includes("sacrif")) { const c = Math.max(1, Math.round(pl.maxHp * 0.02)); pl.hp -= c; say(g, "warn", "The sacrifice takes its " + c + "."); }
+  if (asp(g, "gale") && Math.random() < 0.3) { const rq = Math.round(p.qiCost / 2); g.qi = Math.min(maxQiOf(g), g.qi + rq); }
+  processDeaths(g);
+  maybeTier(g, p);
+  if (pl.hp <= 0) { pl.hp = 0; playerDeath(g); return "played"; }
+  endOfAction(g);
+  return "played";
+}
+
+// ============================================================
+// REACT SHELL — text-first UI + optional Claude narration
+// ============================================================
+
+async function fetchRoomProse(g) {
+  const pl = g.player;
+  const cond = pl.hp / pl.maxHp > 0.7 ? "steady" : pl.hp / pl.maxHp > 0.35 ? "wounded" : "badly hurt, close to falling";
+  const state = {
+    room: g.room,
+    kind: g.roomKind,
+    enemies: aliveE(g).map((e) => e.name + (e.boss ? " (boss)" : "")),
+    you: { class: g.className, path: g.aspects.map((id) => ASPECTS.find((a) => a.id === id).name).join("+"), condition: cond },
+  };
+  const prompt = "You narrate a grim, restrained xianxia dungeon crawl (LitRPG tone, think Infinite Realm). Write the moment the cultivator enters a new room. 2-3 SHORT sentences, second person, present tense. Concrete sensory detail. If enemies are listed, end on their presence with menace. No stats, no numbers, no questions, no markdown. Scene data: " + JSON.stringify(state);
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
+  });
+  const data = await response.json();
+  const text = (data.content || []).map((i) => (i.type === "text" ? i.text : "")).filter(Boolean).join(" ").trim();
+  if (!text) throw new Error("empty");
+  return text;
+}
+
+const T = {
+  bg: "radial-gradient(1100px 700px at 50% -8%, #241c3e 0%, #161027 46%, #0b0814 100%)",
+  surface: "#251d3c", surface2: "#2f2550", edgeDark: "#141021",
+  ink: "#e9decb", inkDim: "#a294b8", inkFaint: "#67597f",
+  gold: "#f0b53e", goldDark: "#a5741c", red: "#ef5350", redDark: "#9c2b2b",
+  teal: "#3fd6c5", tealDark: "#1a7c72", green: "#8bc97a", violet: "#b89ae8",
+};
+const SERIF = "Georgia, 'Palatino Linotype', 'Times New Roman', serif";
+const UIF = "'Nunito', 'Avenir Next', 'Segoe UI', system-ui, sans-serif";
+
+function Chunk({ color, dark, children, onClick, disabled, style, small }) {
+  return (
+    <button onClick={onClick} disabled={disabled} style={{
+      fontFamily: UIF, fontWeight: 900, fontSize: small ? 11 : 13, letterSpacing: 0.3, color: "#fff",
+      textShadow: "0 1px 0 #0008", padding: small ? "7px 10px" : "11px 14px", borderRadius: 11, border: "none", cursor: "pointer",
+      background: disabled ? "#372f52" : "linear-gradient(180deg," + color + " 0%," + color + " 55%," + dark + " 140%)",
+      boxShadow: disabled ? "0 3px 0 #201a33" : "0 4px 0 " + dark + ", 0 5px 12px #0009",
+      opacity: disabled ? 0.5 : 1, ...style,
+    }}>{children}</button>
+  );
+}
+function ListRow({ selected, color, onClick, children, dim }) {
+  return (
+    <button onClick={onClick} style={{
+      width: "100%", textAlign: "left", cursor: "pointer", padding: "10px 12px", borderRadius: 12, marginBottom: 8,
+      border: "2px solid " + (selected ? color : T.edgeDark),
+      background: selected ? "#332a58" : "linear-gradient(180deg," + T.surface2 + "," + T.surface + ")",
+      boxShadow: selected ? "0 0 12px " + color + "55, 0 3px 0 " + T.edgeDark : "0 3px 0 " + T.edgeDark,
+      opacity: dim ? 0.45 : 1, fontFamily: UIF,
+    }}>{children}</button>
+  );
+}
+function RiderLines({ aspects, dealsDamage }) {
+  const shown = aspects.map((id) => ASPECTS.find((x) => x.id === id)).filter((a) => a.always || dealsDamage);
+  return (
+    <div style={{ marginTop: 4 }}>
+      {shown.map((a) => (
+        <div key={a.id} style={{ fontFamily: UIF, fontWeight: 700, fontSize: 10.5, color: a.color, lineHeight: 1.45 }}>{a.emoji} {a.name} — {a.always ? "always" : "on hit"}: {a.riderDesc}</div>
+      ))}
+      {!dealsDamage && <div style={{ fontFamily: UIF, fontSize: 10, color: T.inkFaint, fontStyle: "italic" }}>Support power — path effects don't trigger from it.</div>}
+    </div>
+  );
+}
+function PowerDetail({ p, aspects }) {
+  const f = FORMS.find((x) => x.id === p.formId);
+  const th = tierAt(p);
+  const next = p.tier === 1 ? th[0] : p.tier === 2 ? th[1] : null;
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "baseline" }}>
+        <span style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 17, color: aspColor(aspects) }}>{f.icon} {pname(p, aspects)}</span>
+        <span style={{ fontFamily: UIF, fontWeight: 900, fontSize: 10, color: p.pillar === "tech" ? T.teal : T.gold, whiteSpace: "nowrap" }}>{pillarLabel(p.pillar)} · {p.qiCost} qi · cd {p.cd}t</span>
+      </div>
+      <div style={{ fontFamily: UIF, fontWeight: 700, fontSize: 11.5, color: T.ink, marginTop: 2 }}>{f.desc} <span style={{ color: T.gold }}>{powerStat(p)}</span></div>
+      {f.special && <div style={{ fontFamily: UIF, fontWeight: 800, fontSize: 10.5, color: T.gold, marginTop: 2 }}>★ {f.special}</div>}
+      {p.mods.map((mid) => {
+        const m = MODS.find((x) => x.id === mid);
+        return <div key={mid} style={{ fontFamily: UIF, fontWeight: 700, fontSize: 10.5, color: T.inkDim, marginTop: 2 }}>◇ <b style={{ color: T.ink }}>{m.name}</b>: {m.desc}</div>;
+      })}
+      <RiderLines aspects={aspects} dealsDamage={f.mult > 0} />
+      <div style={{ fontFamily: UIF, fontSize: 9.5, color: T.inkFaint, marginTop: 4 }}>{p.uses} uses{next ? " · Tier " + (p.tier + 1) + " at " + next : " · mastered"}</div>
+    </div>
+  );
+}
+
+const LOG_STYLE = {
+  prose: { fontFamily: SERIF, fontSize: 14.5, color: "#e9decb", lineHeight: 1.62, margin: "10px 0" },
+  ai: { fontFamily: SERIF, fontSize: 14.5, color: "#f0e6d2", lineHeight: 1.62, margin: "10px 0", borderLeft: "2px solid #b89ae8", paddingLeft: 10 },
+  you: { fontFamily: SERIF, fontSize: 13.5, color: "#9fdbd2", lineHeight: 1.5, margin: "4px 0" },
+  foe: { fontFamily: SERIF, fontSize: 13.5, color: "#e8a1a1", lineHeight: 1.5, margin: "4px 0" },
+  loot: { fontFamily: UIF, fontWeight: 800, fontSize: 12, color: "#f0b53e", margin: "4px 0" },
+  warn: { fontFamily: SERIF, fontStyle: "italic", fontSize: 13.5, color: "#ef5350", margin: "6px 0" },
+  sys: { fontFamily: "ui-monospace, Menlo, monospace", fontSize: 11.5, color: "#7fe8db", background: "#0d1626", border: "1px solid #1c3a44", borderRadius: 8, padding: "7px 10px", margin: "8px 0", lineHeight: 1.5 },
+};
+
+function FrameworkText() {
+  const gRef = useRef(null);
+  if (!gRef.current) gRef.current = makeGame();
+  const [, setV] = useState(0);
+  const bump = () => setV((v) => v + 1);
+  const [sel, setSel] = useState(null);
+  const [lockUntil, setLockUntil] = useState(0);
+  const [targeting, setTargeting] = useState(null); // power id awaiting target
+  const [inspect, setInspect] = useState(null);
+  const [buildOpen, setBuildOpen] = useState(false);
+  const logRef = useRef(null);
+  const g = gRef.current;
+  const col = aspColor(g.aspects);
+  const phase = g.phase;
+
+  useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; });
+
+  const trySelect = (v) => { if (Date.now() < lockUntil) return; setSel(v); };
+  const resetSel = () => { setSel(null); setTargeting(null); setLockUntil(Date.now() + 350); };
+
+  const maybeAI = () => {
+    if (!g.aiNarr || !g.pendingProseId) return;
+    const entryId = g.pendingProseId;
+    g.pendingProseId = null;
+    fetchRoomProse(g).then((text) => {
+      const entry = g.log.find((l) => l.id === entryId);
+      if (entry) { entry.text = text; entry.kind = "ai"; bump(); }
+    }).catch(() => {
+      if (g.aiNarr) {
+        g.aiNarr = false;
+        g.aiUnavailable = true;
+        say(g, "sys", "✨ Live narration isn't reachable here — the grammar narrator carries on.");
+        bump();
+      }
+    });
+  };
+  const doDoor = (i) => { resetSel(); enterDoor(g, i); bump(); maybeAI(); };
+  const doAspect = (id) => { resetSel(); applyAspectG(g, id); if (g.phase === "classpick") {} else if (g.room === 0) {} bump(); };
+  const doClass = (c) => { resetSel(); applyClassG(g, c); offerDoors(g); bump(); };
+  const doChoose = (o) => { resetSel(); applyChoiceG(g, o); bump(); };
+  const doAction = (kind, pid) => {
+    if (phase !== "run") return;
+    if (kind === "attack") { actAttack(g); }
+    else if (kind === "cycle") { actCycle(g); }
+    else if (kind === "power") {
+      const res = actPower(g, pid);
+      if (res === "needTarget") { setTargeting(pid); bump(); return; }
+    }
+    setTargeting(null);
+    bump();
+  };
+  const tapEnemy = (e) => {
+    if (targeting) { actPower(g, targeting, e.uid); setTargeting(null); bump(); }
+    else setInspect({ type: "enemy", id: e.uid });
+  };
+  const stock = phase === "shop" ? shopStockG(g) : [];
+  const doBuy = () => { const it = typeof sel === "number" ? stock[sel] : null; if (it) { buyItemG(g, it); setSel(null); bump(); } };
+  const leaveShop = () => { resetSel(); offerDoors(g); bump(); };
+  const newRun = () => { gRef.current = makeGame(); resetSel(); setBuildOpen(false); setInspect(null); bump(); };
+
+  const selAspect = phase === "aspectpick" && typeof sel === "string" ? ASPECTS.find((a) => a.id === sel) || null : null;
+  const selClass = phase === "classpick" && typeof sel === "string" ? CLASSES.find((c) => c.id === sel) || null : null;
+  const selOffer = phase === "levelup" && typeof sel === "number" && g.offers ? g.offers[sel] || null : null;
+  const selItem = phase === "shop" && typeof sel === "number" ? stock[sel] || null : null;
+  const pl = g.player;
+  const mq = maxQiOf(g);
+  const overlay = { position: "fixed", inset: 0, zIndex: 50, overflowY: "auto", background: "rgba(8,5,15,.97)" };
+  const inner = { maxWidth: 430, margin: "0 auto", padding: "16px 14px 26px" };
+
+  return (
+    <div style={{ height: "100svh", display: "flex", flexDirection: "column", background: T.bg, fontFamily: UIF, color: T.ink, userSelect: "none", WebkitTapHighlightColor: "transparent", overflow: "hidden" }}>
+      <div style={{ maxWidth: 430, margin: "0 auto", width: "100%", display: "flex", flexDirection: "column", height: "100%", padding: "8px 10px" }}>
+
+        {/* status strip */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: 5 }}>
+          <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 17, color: T.ink }}>Room {g.room}{g.roomKind === "boss" ? " 👁" : ""}</div>
+          <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
+            <button disabled={g.aiUnavailable} onClick={() => { g.aiNarr = !g.aiNarr; bump(); }} style={{ background: g.aiNarr ? "#3a2f5c" : "#221b38", border: "2px solid " + (g.aiNarr ? T.violet : T.edgeDark), borderRadius: 9, padding: "3px 8px", fontFamily: UIF, fontWeight: 900, fontSize: 10.5, color: g.aiNarr ? T.violet : T.inkFaint, cursor: g.aiUnavailable ? "default" : "pointer", opacity: g.aiUnavailable ? 0.4 : 1 }}>✨ AI {g.aiUnavailable ? "N/A" : g.aiNarr ? "ON" : "OFF"}</button>
+            <button onClick={() => setBuildOpen(true)} style={{ background: "#221b38", border: "2px solid " + T.edgeDark, borderRadius: 9, padding: "3px 9px", fontFamily: UIF, fontWeight: 900, fontSize: 10.5, color: T.inkDim, cursor: "pointer" }}>BUILD</button>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 6, paddingBottom: 6, fontFamily: UIF, fontWeight: 900, fontSize: 11 }}>
+          <span style={{ color: "#ff9b98" }}>❤ {Math.max(0, Math.round(pl.hp))}/{pl.maxHp}{pl.block > 0 ? " 🛡" + pl.block : ""}</span>
+          <span style={{ color: T.teal }}>◉ {Math.round(g.qi)}/{mq}</span>
+          <span style={{ color: T.gold }}>✦ {g.essence}/{g.thresh}</span>
+          <button onClick={() => g.aspects.length && setInspect({ type: "path" })} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", fontFamily: UIF, fontWeight: 900, fontSize: 11, color: col }}>
+            {g.aspects.map((id) => ASPECTS.find((a) => a.id === id).emoji).join("")} {g.aspects.map((id) => ASPECTS.find((a) => a.id === id).name).join("+") || ""}
+          </button>
+        </div>
+
+        {/* battle scene */}
+        {phase === "run" && aliveE(g).length > 0 && (
+          <div style={{ paddingBottom: 7 }}>
+            <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
+              {aliveE(g).map((e) => {
+                const st = (e.burn && e.burn.t > 0 ? "🔥" : "") + (e.poison && e.poison.t > 0 ? "☠️" : "") + (e.chillT > 0 ? "❄️" : "") + (e.sleepT > 0 || e.stunT > 0 ? "💤" : "") + (e.markT > 0 ? "◬" : "") + (e.weakenT > 0 ? "⤵" : "");
+                const frac = clamp(e.hp / e.maxHp, 0, 1);
+                return (
+                  <button key={e.uid} onClick={() => tapEnemy(e)} style={{
+                    flex: "1 1 0", minWidth: 92, maxWidth: 150, cursor: "pointer", padding: "7px 6px 6px", borderRadius: 12, textAlign: "center",
+                    border: "2px solid " + (targeting ? T.red : e.boss ? T.goldDark : T.edgeDark),
+                    background: "linear-gradient(180deg," + T.surface2 + "," + T.surface + ")",
+                    boxShadow: targeting ? "0 0 10px " + T.red + "66" : "0 3px 0 " + T.edgeDark,
+                  }}>
+                    <div style={{ fontSize: e.boss ? 34 : 26, lineHeight: 1, filter: "drop-shadow(0 3px 3px #0009)" }}>{e.emoji}</div>
+                    <div style={{ fontFamily: UIF, fontWeight: 900, fontSize: 9.5, color: e.boss ? T.gold : T.ink, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {e.name}{st ? " " + st : ""}
+                    </div>
+                    <div style={{ height: 6, borderRadius: 3, background: "#120d20", margin: "3px 2px 0", overflow: "hidden", border: "1px solid #000" }}>
+                      <div style={{ height: "100%", width: frac * 100 + "%", background: frac > 0.5 ? "#7bc96a" : frac > 0.25 ? T.gold : T.red, transition: "width .25s" }} />
+                    </div>
+                    <div style={{ fontFamily: UIF, fontWeight: 800, fontSize: 9, color: T.inkDim, marginTop: 1 }}>
+                      {Math.max(0, Math.round(e.hp))}/{e.maxHp}{e.armor > 0 ? " · ▣" + e.armor : ""}{e.block > 0 ? " · ◈" + e.block : ""}
+                    </div>
+                    <div style={{ display: "inline-block", fontFamily: UIF, fontWeight: 900, fontSize: 8.5, color: "#ffd9d8", background: "#4a1420", border: "1px solid " + T.redDark, borderRadius: 7, padding: "1px 6px", marginTop: 3 }}>
+                      {e.sleepT > 0 || e.stunT > 0 ? "💤 helpless" : "▸ " + e.intent.label}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6, padding: "5px 9px", borderRadius: 10, border: "2px solid " + T.edgeDark, background: "linear-gradient(180deg," + T.surface2 + "," + T.surface + ")", boxShadow: "0 2px 0 " + T.edgeDark }}>
+              <span style={{ fontSize: 16 }}>🥷</span>
+              <div style={{ flex: 1.4 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontFamily: UIF, fontWeight: 900, fontSize: 8.5, color: "#ff9b98" }}>
+                  <span>HP{pl.block > 0 ? " · 🛡" + pl.block : ""}{pl.thornsT > 0 ? " 🌵" : ""}{pl.buffT > 0 ? " ✨" : ""}{pl.regenT > 0 ? " 🌱" : ""}</span><span>{Math.max(0, Math.round(pl.hp))}/{pl.maxHp}</span>
+                </div>
+                <div style={{ height: 6, borderRadius: 3, background: "#120d20", marginTop: 1, overflow: "hidden", border: "1px solid #000" }}>
+                  <div style={{ height: "100%", width: clamp((pl.hp / pl.maxHp) * 100, 0, 100) + "%", background: "linear-gradient(90deg,#e8615e,#f0938d)", transition: "width .25s" }} />
+                </div>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontFamily: UIF, fontWeight: 900, fontSize: 8.5, color: T.teal }}>
+                  <span>QI</span><span>{Math.round(g.qi)}/{mq}</span>
+                </div>
+                <div style={{ height: 6, borderRadius: 3, background: "#120d20", marginTop: 1, overflow: "hidden", border: "1px solid #000" }}>
+                  <div style={{ height: "100%", width: clamp((g.qi / mq) * 100, 0, 100) + "%", background: "linear-gradient(90deg," + T.tealDark + "," + T.teal + ")", transition: "width .25s" }} />
+                </div>
+              </div>
+            </div>
+            {targeting && <div style={{ textAlign: "center", fontFamily: UIF, fontWeight: 900, fontSize: 10.5, color: T.red, marginTop: 4 }}>TAP A TARGET · <button onClick={() => setTargeting(null)} style={{ background: "none", border: "none", color: T.inkDim, textDecoration: "underline", cursor: "pointer", fontFamily: UIF, fontWeight: 900, fontSize: 10.5 }}>cancel</button></div>}
+          </div>
+        )}
+
+        {/* narrative log */}
+        <div ref={logRef} style={{ flex: 1, overflowY: "auto", padding: "4px 4px 12px", borderTop: "1px solid #241d3a", borderBottom: "1px solid #241d3a" }}>
+          {g.log.map((l) => (
+            <div key={l.id} style={LOG_STYLE[l.kind] || LOG_STYLE.prose}>{l.kind === "ai" ? "✨ " : ""}{l.text}</div>
+          ))}
+          {phase === "aspectpick" && g.aspects.length === 0 && (
+            <div style={LOG_STYLE.prose}>You wake on cold stone with a system window burning gently in the corner of your vision. The Framework has chosen you, or caught you — the distinction, it suggests, is yours to earn. First: a path.</div>
+          )}
+        </div>
+
+        {/* action area */}
+        <div style={{ paddingTop: 8 }}>
+          {phase === "run" && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              <Chunk small color="#5a4f80" dark="#2c2547" onClick={() => doAction("attack")}>⚔ ATTACK</Chunk>
+              {g.powers.filter((p) => FORMS.find((f) => f.id === p.formId)).map((p) => {
+                const f = FORMS.find((x) => x.id === p.formId);
+                const ready = !p.installed && p.cdLeft <= 0 && g.qi >= p.qiCost;
+                return (
+                  <Chunk small key={p.id} color={p.pillar === "tech" ? T.tealDark : "#7a5b23"} dark="#1c1530" disabled={!ready} onClick={() => doAction("power", p.id)}>
+                    {f.icon} {f.name}{p.tier > 1 ? roman(p.tier) : ""} {p.installed ? "· on" : p.cdLeft > 0 ? "· " + p.cdLeft + "t" : "· " + p.qiCost}
+                  </Chunk>
+                );
+              })}
+              <Chunk small color={T.tealDark} dark="#0d3a34" onClick={() => doAction("cycle")}>🌬 CYCLE</Chunk>
+            </div>
+          )}
+          {phase === "doors" && g.doors && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {g.doors.map((d, i) => (
+                <button key={i} onClick={() => doDoor(i)} style={{
+                  width: "100%", textAlign: "left", cursor: "pointer", padding: "9px 12px", borderRadius: 12,
+                  border: "2px solid " + (d.kind === "boss" ? T.red : T.goldDark),
+                  background: "linear-gradient(180deg," + T.surface2 + "," + T.surface + ")",
+                  boxShadow: "0 3px 0 " + T.edgeDark,
+                }}>
+                  <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 14.5, color: d.kind === "boss" ? T.red : T.gold }}>
+                    {d.kind === "boss" ? "⛩ The sealed gate" : "▸ " + d.title.charAt(0).toUpperCase() + d.title.slice(1)}
+                  </div>
+                  <div style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 11.5, color: T.inkDim, marginTop: 1 }}>{d.hint}</div>
+                </button>
+              ))}
+            </div>
+          )}
+          {phase === "treasure" && (
+            <Chunk color={T.gold} dark={T.goldDark} onClick={() => { resetSel(); leaveTreasure(g); bump(); }} style={{ width: "100%" }}>POCKET IT AND MOVE ON ▸</Chunk>
+          )}
+          {phase === "shrine" && (
+            <div style={{ display: "flex", gap: 6 }}>
+              <Chunk small color={T.tealDark} dark="#0d3a34" onClick={() => { resetSel(); shrineChoice(g, "meditate"); bump(); }} style={{ flex: 1 }}>🧘 MEDITATE (+10 max qi)</Chunk>
+              <Chunk small color={T.redDark} dark="#5c1a1a" onClick={() => { resetSel(); shrineChoice(g, "blood"); bump(); }} style={{ flex: 1 }}>🩸 OFFER BLOOD (−12 HP, +6% dmg)</Chunk>
+              <Chunk small color="#4a4266" dark="#241e38" onClick={() => { resetSel(); shrineChoice(g, "leave"); bump(); }}>LEAVE</Chunk>
+            </div>
+          )}
+          {phase === "dead" && (
+            <Chunk color={T.gold} dark={T.goldDark} onClick={newRun} style={{ width: "100%" }}>NEW ITERATION — Room {g.room} · Lv {Math.max(1, g.level)} · {g.kills} slain</Chunk>
+          )}
+        </div>
+      </div>
+
+      {/* aspect pick */}
+      {phase === "aspectpick" && (
+        <div style={overlay}>
+          <div style={inner}>
+            <div style={{ textAlign: "center", fontFamily: SERIF, fontWeight: 700, fontSize: 24, color: col, margin: "6px 0 4px" }}>{g.aspects.length === 0 ? "Choose Your Path" : "Cultivation Deepens"}</div>
+            <div style={{ textAlign: "center", fontSize: 11, fontWeight: 700, color: T.inkDim, marginBottom: 12 }}>{g.aspects.length === 0 ? "An aspect rides every damaging power you will ever hold." : "A second aspect stacks onto everything — every power is reshaped."}</div>
+            {ASPECTS.filter((a) => !g.aspects.includes(a.id)).map((a) => (
+              <ListRow key={a.id} selected={sel === a.id} color={a.color} onClick={() => trySelect(a.id)}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+                  <span style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 16, color: a.color }}>{a.emoji} {a.name}</span>
+                  {sel === a.id && <span style={{ fontSize: 10, fontWeight: 900, color: a.color }}>✓</span>}
+                </div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: sel === a.id ? T.ink : T.inkDim, marginTop: 2 }}>{(a.always ? "Always: " : "On hit: ") + a.riderDesc}</div>
+                {sel === a.id && g.aspects.length === 1 && g.powers.length ? <div style={{ fontSize: 10, fontStyle: "italic", color: T.inkFaint, marginTop: 3 }}>→ {pname(g.powers[0], [...g.aspects, a.id])}</div> : null}
+              </ListRow>
+            ))}
+            <div style={{ position: "sticky", bottom: 8, paddingTop: 8 }}>
+              <Chunk color={selAspect ? selAspect.color : "#4a4266"} dark="#241e38" disabled={!selAspect} onClick={() => selAspect && doAspect(selAspect.id)} style={{ width: "100%" }}>
+                {selAspect ? "WALK THE PATH OF " + selAspect.name.toUpperCase() : "TAP A PATH TO INSPECT"}
+              </Chunk>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* class pick */}
+      {phase === "classpick" && (
+        <div style={overlay}>
+          <div style={inner}>
+            <div style={{ textAlign: "center", fontFamily: SERIF, fontWeight: 700, fontSize: 24, color: T.gold, margin: "6px 0 12px" }}>Choose Your Class</div>
+            {CLASSES.map((c) => {
+              const f = FORMS.find((x) => x.id === c.form);
+              const prev = sel === c.id ? buildPower(f, c.mods, 1, 1, "class") : null;
+              return (
+                <ListRow key={c.id} selected={sel === c.id} color={col} onClick={() => trySelect(c.id)}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                    <span style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 16, color: col }}>{f.icon} {c.name}</span>
+                    <span style={{ fontSize: 9.5, fontWeight: 900, color: T.green, flexShrink: 0 }}>{c.perk.label}</span>
+                  </div>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, color: T.inkDim, marginTop: 2 }}>{c.why}</div>
+                  {prev && <div style={{ marginTop: 5 }}><PowerDetail p={prev} aspects={g.aspects} /></div>}
+                </ListRow>
+              );
+            })}
+            <div style={{ position: "sticky", bottom: 8, paddingTop: 8 }}>
+              <Chunk color={T.gold} dark={T.goldDark} disabled={!selClass} onClick={() => selClass && doClass(selClass)} style={{ width: "100%" }}>
+                {selClass ? "BECOME THE " + selClass.name.toUpperCase() : "TAP A CLASS TO INSPECT"}
+              </Chunk>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* level up */}
+      {phase === "levelup" && g.offers && (
+        <div style={overlay}>
+          <div style={inner}>
+            <div style={{ textAlign: "center", fontFamily: SERIF, fontWeight: 700, fontSize: 24, color: T.teal, margin: "6px 0 4px" }}>Level {g.level + 1}</div>
+            <div style={{ textAlign: "center", fontSize: 11, fontWeight: 700, color: T.inkDim, marginBottom: 12 }}>Only new powers — what you own evolves through use.</div>
+            {g.offers.map((o, i) => (
+              <ListRow key={i} selected={sel === i} color={o.kind === "pas" ? T.green : col} onClick={() => trySelect(i)}>
+                {o.kind === "pas" ? (
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 15, color: T.green }}>{o.boon.icon} [{o.boon.name}]</span>
+                      <span style={{ fontSize: 9.5, fontWeight: 900, color: T.green }}>PASSIVE</span>
+                    </div>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, color: T.inkDim, marginTop: 2 }}>{o.boon.desc} · +{o.chunk} {o.boon.unit}</div>
+                    {sel === i && <div style={{ fontSize: 10, fontStyle: "italic", color: T.inkFaint, marginTop: 3 }}>{o.why}</div>}
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 6 }}>
+                      <span style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 15, color: col }}>{FORMS.find((f) => f.id === o.power.formId).icon} {pname(o.power, g.aspects)}</span>
+                      <span style={{ fontSize: 9.5, fontWeight: 900, color: o.kind === "lik" ? T.gold : T.teal, flexShrink: 0 }}>{o.kind === "lik" ? "SIMILAR" : "DIFFERENT"}</span>
+                    </div>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, color: T.inkDim, marginTop: 2 }}>{FORMS.find((f) => f.id === o.power.formId).desc} · {powerStat(o.power)} · {o.power.qiCost} qi</div>
+                    {sel === i && <div style={{ marginTop: 4 }}><PowerDetail p={o.power} aspects={g.aspects} /><div style={{ fontSize: 10, fontStyle: "italic", color: T.inkFaint, marginTop: 3 }}>{o.why}</div></div>}
+                  </div>
+                )}
+              </ListRow>
+            ))}
+            <div style={{ position: "sticky", bottom: 8, paddingTop: 8 }}>
+              <Chunk color={T.gold} dark={T.goldDark} disabled={!selOffer} onClick={() => selOffer && doChoose(selOffer)} style={{ width: "100%" }}>
+                {selOffer ? "TAKE " + (selOffer.kind === "pas" ? "[" + selOffer.boon.name.toUpperCase() + "]" : pshort(selOffer.power, g.aspects).toUpperCase()) : "TAP AN OFFER TO INSPECT"}
+              </Chunk>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* shop */}
+      {phase === "shop" && (
+        <div style={overlay}>
+          <div style={inner}>
+            <div style={{ textAlign: "center", fontFamily: SERIF, fontWeight: 700, fontSize: 24, color: T.gold, margin: "6px 0 4px" }}>The Dealmaker</div>
+            <div style={{ textAlign: "center", fontSize: 11, fontWeight: 800, color: T.inkDim, marginBottom: 12 }}>Essence <span style={{ color: T.gold }}>✦ {g.essence}</span> · spending delays your next level</div>
+            {stock.map((it, i) => {
+              const afford = g.essence >= it.cost;
+              return (
+                <ListRow key={it.id} selected={sel === i} color={T.gold} dim={!afford} onClick={() => afford && trySelect(i)}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                    <span style={{ fontWeight: 900, fontSize: 12.5, color: T.ink }}>{it.icon} {it.name}</span>
+                    <span style={{ fontWeight: 900, fontSize: 11.5, color: T.gold }}>✦ {it.cost}</span>
+                  </div>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, color: T.inkDim, marginTop: 1 }}>{it.desc}</div>
+                </ListRow>
+              );
+            })}
+            <div style={{ position: "sticky", bottom: 8, paddingTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+              <Chunk color={T.gold} dark={T.goldDark} disabled={!selItem} onClick={doBuy} style={{ width: "100%" }}>
+                {selItem ? "BUY " + selItem.name.toUpperCase() + " · ✦" + selItem.cost : "TAP AN ITEM TO INSPECT"}
+              </Chunk>
+              <Chunk color="#4a4266" dark="#241e38" onClick={leaveShop} style={{ width: "100%" }}>LEAVE THE LANTERN LIGHT ▸</Chunk>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* build overlay */}
+      {buildOpen && (
+        <div style={overlay}>
+          <div style={inner}>
+            <div style={{ textAlign: "center", fontFamily: SERIF, fontWeight: 700, fontSize: 22, color: T.teal, margin: "6px 0 10px" }}>Your Build</div>
+            <div style={{ fontSize: 10.5, fontWeight: 900, color: T.inkDim, marginBottom: 6 }}>
+              {g.className || "—"} · class {slotCount(g, "class")}/3 · tech {slotCount(g, "tech")}/3 · passive {g.passives.length}/3{g.breaks ? " · ◆" + g.breaks : ""}
+            </div>
+            {g.powers.map((p) => (
+              <ListRow key={p.id} color={col} onClick={() => setInspect({ type: "power", id: p.id })}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 6, fontSize: 11, fontWeight: 800 }}>
+                  <span style={{ color: col, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{FORMS.find((f) => f.id === p.formId).icon} {pname(p, g.aspects)}</span>
+                  <span style={{ color: p.pillar === "tech" ? T.teal : T.gold, flexShrink: 0 }}>{powerStat(p)} · {p.uses}u</span>
+                </div>
+              </ListRow>
+            ))}
+            {g.passives.map((b) => {
+              const d = PASSIVES.find((x) => x.id === b.id);
+              return (
+                <ListRow key={b.id} color={T.green} onClick={() => setInspect({ type: "passive", id: b.id })}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 800 }}>
+                    <span style={{ color: T.green }}>{d.icon} [{d.name}]{roman(b.tier)}</span>
+                    <span style={{ color: T.inkDim }}>+{b.value} {d.unit}</span>
+                  </div>
+                </ListRow>
+              );
+            })}
+            <div style={{ fontSize: 10.5, fontWeight: 900, color: T.green, margin: "8px 0 4px" }}>SKILLS</div>
+            {SKILLDEF.map((s) => {
+              const st = g.skills[s.id];
+              return (
+                <div key={s.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, fontWeight: 700, padding: "2px 2px", color: st ? T.ink : T.inkFaint }}>
+                  <span>{s.name}{st ? " Lv " + st.lvl : " — dormant"}</span>
+                  <span style={{ color: T.inkDim }}>{st ? s.fx(st.lvl) : s.how}</span>
+                </div>
+              );
+            })}
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.inkDim, lineHeight: 1.6, marginTop: 10 }}>
+              Powers tier at {TIER_AT.normal[0]}/{TIER_AT.normal[1]} uses. Passives deepen after {PAS_AGE[0]}/{PAS_AGE[1]} turns. Breakthrough when all slots are full. The space: {TOTCOMBOS.toLocaleString("en-US")} possible powers.
+            </div>
+            <div style={{ marginTop: 12 }}>
+              <Chunk color="#4a4266" dark="#241e38" onClick={() => setBuildOpen(false)} style={{ width: "100%" }}>CLOSE</Chunk>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* inspect sheet */}
+      {inspect && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(5,3,10,.82)" }} onClick={() => setInspect(null)}>
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ maxWidth: 430, margin: "0 auto", background: "linear-gradient(180deg," + T.surface2 + "," + T.surface + ")", border: "2px solid " + T.edgeDark, borderBottom: "none", borderRadius: "16px 16px 0 0", padding: "14px 14px 18px" }}>
+              {inspect.type === "power" && (() => { const p = g.powers.find((x) => x.id === inspect.id); return p ? <PowerDetail p={p} aspects={g.aspects} /> : null; })()}
+              {inspect.type === "passive" && (() => {
+                const b = g.passives.find((x) => x.id === inspect.id);
+                if (!b) return null;
+                const d = PASSIVES.find((x) => x.id === b.id);
+                const th = b.tier === 1 ? PAS_AGE[0] : b.tier === 2 ? PAS_AGE[1] : null;
+                return (
+                  <div>
+                    <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 17, color: T.green }}>{d.icon} [{d.name}]{roman(b.tier)}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: T.inkDim, marginTop: 2 }}>{d.desc}</div>
+                    <div style={{ fontSize: 12, fontWeight: 900, color: T.ink, marginTop: 3 }}>+{b.value} {d.unit}</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: T.inkFaint, marginTop: 3 }}>{th ? "Deepens after " + th + " turns (" + Math.max(0, th - b.age) + " to go)" : "Fully deepened"}</div>
+                  </div>
+                );
+              })()}
+              {inspect.type === "path" && (
+                <div>
+                  <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 17, color: col }}>Path of {g.aspects.map((id) => ASPECTS.find((x) => x.id === id).name).join(" + ")}</div>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, color: T.inkDim, marginTop: 3, lineHeight: 1.5 }}>On-hit effects trigger every time a damaging power strikes. Support powers never trigger them.</div>
+                  <RiderLines aspects={g.aspects} dealsDamage={true} />
+                </div>
+              )}
+              {inspect.type === "enemy" && (() => {
+                const e = g.enemies.find((x) => x.uid === inspect.id);
+                if (!e) return null;
+                return (
+                  <div>
+                    <div style={{ fontFamily: SERIF, fontWeight: 700, fontSize: 17, color: e.boss ? T.gold : T.ink }}>{e.emoji} {e.name}</div>
+                    <div style={{ fontSize: 11.5, fontWeight: 800, color: T.ink, marginTop: 3 }}>{Math.max(0, Math.round(e.hp))}/{e.maxHp} HP · {e.dmg} dmg{e.armor > 0 ? " · " + e.armor + " armor" : ""}{e.block > 0 ? " · " + e.block + " block" : ""}</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: T.red, marginTop: 3 }}>Next: {e.intent.label}</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: T.inkFaint, marginTop: 3 }}>{statusCount(e)} status effect(s) active</div>
+                  </div>
+                );
+              })()}
+              <div style={{ marginTop: 10 }}>
+                <Chunk small color="#4a4266" dark="#241e38" onClick={() => setInspect(null)} style={{ width: "100%" }}>CLOSE</Chunk>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<FrameworkText />);
+</script>
+</body>
+</html>
