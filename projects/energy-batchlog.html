@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Batchlogg · Vit energi</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+:root{
+  --paper:#F6F7F5; --card:#FFFFFF; --ink:#171A18; --mut:#5C6660;
+  --line:#DCE1DA; --chip:#EDF0EA; --acc:#75840A; --acc-deep:#57620A;
+  --down:#3F6B7D; --warn:#8C4A2E; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  padding-bottom:calc(74px + env(safe-area-inset-bottom));}
+.wrap{max-width:560px;margin:0 auto;padding:14px 14px 0}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* header */
+header{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:12px}
+.eyebrow{font:600 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+h1{font:700 21px/1.1 var(--mono);margin:4px 0 0;letter-spacing:-.01em}
+.stor{font:11px var(--mono);color:var(--mut);white-space:nowrap}
+.stor .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--acc);
+  margin-right:5px;vertical-align:1px}
+.stor.off .dot{background:var(--warn)}
+
+.banner{background:#FBEFE8;border:1px solid #E6C9B8;color:var(--warn);border-radius:8px;
+  padding:9px 11px;font:13px/1.4 var(--mono);margin-bottom:12px}
+
+/* primärknapp */
+.newbtn{display:block;width:100%;padding:13px;border:0;border-radius:10px;
+  background:var(--ink);color:var(--paper);font:600 15px var(--mono);letter-spacing:.02em}
+.newbtn:active{transform:translateY(1px)}
+.subhint{font:11px var(--mono);color:var(--mut);text-align:center;margin:7px 0 16px}
+
+/* batchkort */
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:12px 13px;margin-bottom:12px}
+.card.best{border-color:var(--acc)}
+.chead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.bid{font:700 15px var(--mono);background:var(--ink);color:var(--paper);
+  border-radius:6px;padding:3px 7px}
+.card.best .bid{background:var(--acc-deep)}
+.cdate{font:12px var(--mono);color:var(--mut)}
+.pill{font:600 10px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;
+  border:1px solid var(--line);border-radius:99px;padding:4px 8px;color:var(--mut)}
+.pill.testad{border-color:var(--acc);color:var(--acc-deep)}
+.crate{margin-left:auto;font:700 14px var(--mono);color:var(--acc-deep);white-space:nowrap}
+.cph{font:12px var(--mono);color:var(--mut)}
+.best-tag{font:600 10px var(--mono);letter-spacing:.1em;color:var(--acc-deep);
+  text-transform:uppercase;margin-top:6px}
+
+/* Δ-remsan (signaturen) */
+.dstrip{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.dlabel{font:700 12px var(--mono);color:var(--mut);align-self:center}
+.dchip{font:12px var(--mono);background:var(--chip);border-radius:6px;padding:4px 7px;white-space:nowrap}
+.dchip.up{color:var(--acc-deep)}
+.dchip.dn{color:var(--down)}
+.dchip.add{color:var(--acc-deep);border:1px dashed var(--acc)}
+.dchip.rem{color:var(--warn);text-decoration:line-through}
+.dnone{font:12px var(--mono);color:var(--mut)}
+
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tag{font:12px var(--mono);border:1px solid var(--line);border-radius:99px;padding:3px 9px;color:var(--mut)}
+.notes{font:14px/1.5 inherit;margin-top:9px;white-space:pre-wrap}
+
+details{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
+summary{font:600 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;
+  color:var(--mut);cursor:pointer;list-style:none;padding:4px 0}
+summary::before{content:"▸ "}
+details[open] summary::before{content:"▾ "}
+.itable{width:100%;border-collapse:collapse;margin-top:6px}
+.itable td{font:13px var(--mono);padding:5px 4px;border-bottom:1px solid var(--chip)}
+.itable td:last-child{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.knote{font:12px/1.5 var(--mono);color:var(--mut);margin-top:8px}
+.kwarn{font:12px/1.5 var(--mono);color:var(--warn);margin-top:6px}
+
+.cactions{display:flex;gap:8px;margin-top:11px}
+.cactions button{flex:1;padding:9px;border:1px solid var(--line);border-radius:8px;
+  background:var(--card);font:600 13px var(--mono);color:var(--ink)}
+.cactions .del{color:var(--warn);border-color:#E6C9B8;flex:0 0 auto;padding:9px 13px}
+
+.empty{border:1px dashed var(--line);border-radius:12px;padding:26px 16px;text-align:center;
+  color:var(--mut);font:14px/1.6 var(--mono)}
+
+/* editor-ark */
+.sheet-bg{position:fixed;inset:0;background:rgba(23,26,24,.45);z-index:20}
+.sheet{position:fixed;left:0;right:0;bottom:0;top:max(18px,env(safe-area-inset-top));z-index:21;
+  background:var(--paper);border-radius:16px 16px 0 0;display:flex;flex-direction:column;
+  max-width:560px;margin:0 auto}
+.sheet-h{display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;border-bottom:2px solid var(--ink)}
+.sheet-h b{font:700 16px var(--mono)}
+.sheet-h button{border:0;background:none;font:600 14px var(--mono);color:var(--mut);padding:6px}
+.sheet-body{overflow-y:auto;padding:14px 16px calc(90px + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling:touch}
+.frow{margin-bottom:14px}
+.flabel{display:block;font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--mut);margin-bottom:6px}
+input,select,textarea{font:15px var(--mono);color:var(--ink);background:var(--card);
+  border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%}
+textarea{min-height:72px;resize:vertical;font-family:inherit}
+.two{display:flex;gap:10px}
+.two>*{flex:1}
+.irow{display:flex;gap:6px;margin-bottom:7px;align-items:center}
+.irow .in-name{flex:1 1 40%}
+.irow .in-amt{flex:0 0 76px;text-align:right;font-variant-numeric:tabular-nums}
+.irow .in-unit{flex:0 0 96px}
+.irow .rm{flex:0 0 auto;border:1px solid var(--line);background:var(--card);border-radius:8px;
+  padding:8px 11px;color:var(--warn);font:700 14px var(--mono)}
+.addrow{border:1px dashed var(--line);background:none;border-radius:8px;width:100%;
+  padding:9px;font:600 13px var(--mono);color:var(--mut)}
+.rate{display:flex;gap:5px;flex-wrap:wrap}
+.rate button{flex:1 0 44px;min-width:40px;padding:10px 0;border:1px solid var(--line);
+  border-radius:8px;background:var(--card);font:700 14px var(--mono);color:var(--mut)}
+.rate button.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.tagpick{display:flex;flex-wrap:wrap;gap:7px}
+.tagpick button{border:1px solid var(--line);background:var(--card);border-radius:99px;
+  padding:7px 12px;font:13px var(--mono);color:var(--mut)}
+.tagpick button.on{background:var(--acc-deep);border-color:var(--acc-deep);color:#fff}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1;padding:10px;border:0;background:var(--card);font:600 13px var(--mono);color:var(--mut)}
+.seg button.on{background:var(--ink);color:var(--paper)}
+.sheet-foot{position:absolute;left:0;right:0;bottom:0;display:flex;gap:10px;
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  background:var(--paper);border-top:1px solid var(--line)}
+.sheet-foot .save{flex:1;padding:13px;border:0;border-radius:10px;background:var(--acc-deep);
+  color:#fff;font:700 15px var(--mono)}
+.sheet-foot .cancel{flex:0 0 auto;padding:13px 16px;border:1px solid var(--line);
+  border-radius:10px;background:var(--card);font:600 14px var(--mono);color:var(--mut)}
+
+/* verktygsrad */
+.toolbar{position:fixed;left:0;right:0;bottom:0;background:var(--paper);
+  border-top:1px solid var(--line);z-index:10}
+.toolbar .in{max-width:560px;margin:0 auto;display:flex;gap:8px;
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
+.toolbar button,.toolbar label{flex:1;text-align:center;padding:10px 4px;border:1px solid var(--line);
+  border-radius:8px;background:var(--card);font:600 12px var(--mono);color:var(--mut)}
+.toolbar input[type=file]{display:none}
+footer.cred{font:11px var(--mono);color:var(--mut);text-align:center;margin:4px 0 16px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const {useState,useEffect,useMemo,useRef} = React;
+
+/* ---------- lagring (localStorage m. minnesfallback) ---------- */
+const LSKEY = 'energy-batchlog-v1';
+const store = (() => {
+  let mem = null, ok = true;
+  try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); }
+  catch(e){ ok = false; }
+  return {
+    ok,
+    load(){ try { return JSON.parse(localStorage.getItem(LSKEY)) || mem; } catch(e){ return mem; } },
+    save(doc){ mem = doc; try { localStorage.setItem(LSKEY, JSON.stringify(doc)); } catch(e){} }
+  };
+})();
+
+/* ---------- kärnlogik (fuzz-testad headless: 33 körningar OK) ---------- */
+function nextBatchId(batches){
+  return batches.reduce((m,b)=>Math.max(m, b.id||0), 0) + 1;
+}
+function diffIngredients(prev, curr){
+  if(!prev) return [];
+  const map = {};
+  (prev.ingredients||[]).forEach(i=>{ map[i.name] = {prev:i, curr:null}; });
+  (curr.ingredients||[]).forEach(i=>{
+    if(map[i.name]) map[i.name].curr = i;
+    else map[i.name] = {prev:null, curr:i};
+  });
+  const out = [];
+  Object.keys(map).forEach(name=>{
+    const {prev:p, curr:c} = map[name];
+    if(p && !c) out.push({name, kind:'removed', unit:p.unit});
+    else if(!p && c) out.push({name, kind:'added', amount:c.amount, unit:c.unit});
+    else if(p.unit !== c.unit) out.push({name, kind:'unitchange', from:p.unit, to:c.unit});
+    else {
+      const d = +(c.amount - p.amount).toFixed(3);
+      if(d !== 0) out.push({name, kind:'delta', delta:d, unit:c.unit});
+    }
+  });
+  return out;
+}
+const SCALE = 25; /* 500 ml glas -> 500 ml koncentrat, dos 20 ml/glas */
+function scaleConcentrate(batch){
+  return (batch.ingredients||[]).map(i=>{
+    let amount = +(i.amount * SCALE).toFixed(2), unit = i.unit;
+    if(unit === 'mg' && amount >= 1000){ amount = +(amount/1000).toFixed(2); unit = 'g'; }
+    return {name:i.name, amount, unit, scalable: i.unit==='g'||i.unit==='mg'||i.unit==='ml'||i.unit==='droppar'};
+  });
+}
+function csvEscape(v){
+  const s = String(v==null?'':v);
+  return /[",\n;]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+}
+function buildCsv(batches){
+  const names = [];
+  batches.forEach(b=>(b.ingredients||[]).forEach(i=>{ if(!names.includes(i.name)) names.push(i.name); }));
+  const head = ['batch','datum','status','pH','betyg','taggar','noter', ...names];
+  const rows = batches.map(b=>{
+    const ing = {}; (b.ingredients||[]).forEach(i=>{ ing[i.name] = i.amount + ' ' + i.unit; });
+    return [ 'B'+String(b.id).padStart(2,'0'), b.date||'', b.status||'', b.ph??'', b.rating??'',
+      (b.tags||[]).join('|'), b.notes||'', ...names.map(n=>ing[n]||'') ].map(csvEscape).join(',');
+  });
+  return [head.map(csvEscape).join(','), ...rows].join('\n');
+}
+
+/* ---------- konstanter ---------- */
+const UNITS = ['g','mg','ml','droppar','nypa'];
+const TAGS = ['för syrlig','för söt','för svag','parfymig','vattnig','vass','platt','nära','perfekt'];
+const SEED = [
+  {name:'Citronsyra',       amount:1.5, unit:'g'},
+  {name:'Bikarbonat',       amount:0.3, unit:'g'},
+  {name:'Erytritol',        amount:5,   unit:'g'},
+  {name:'Sukralos',         amount:10,  unit:'mg'},
+  {name:'Taurin',           amount:1,   unit:'g'},
+  {name:'Salt',             amount:1,   unit:'nypa'},
+  {name:'TFA Energy Drink', amount:5,   unit:'droppar'},
+  {name:'Vit druva',        amount:2,   unit:'droppar'},
+  {name:'Persika',          amount:1,   unit:'droppar'},
+];
+const today = () => new Date().toISOString().slice(0,10);
+const fmtA = n => (Math.round(n*100)/100).toString().replace('.', ',');
+
+/* ---------- filer ---------- */
+function download(name, text, mime){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text],{type:mime}));
+  a.download = name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+}
+
+/* ---------- kort ---------- */
+function BatchCard({batch, prevBatch, isBest, onEdit, onDelete}){
+  const diffs = diffIngredients(prevBatch, batch);
+  const conc  = scaleConcentrate(batch);
+  const eryt  = conc.find(i=>/erytritol/i.test(i.name));
+  return (
+    <article className={'card'+(isBest?' best':'')}>
+      <div className="chead">
+        <span className="bid">B{String(batch.id).padStart(2,'0')}</span>
+        <span className="cdate">{batch.date}</span>
+        <span className={'pill '+batch.status}>{batch.status}</span>
+        {batch.ph!=null && batch.ph!=='' && <span className="cph">pH {String(batch.ph).replace('.',',')}</span>}
+        {batch.rating!=null && <span className="crate">★ {batch.rating}/10</span>}
+      </div>
+      {isBest && <div className="best-tag">★ bästa hittills</div>}
+
+      <div className="dstrip">
+        <span className="dlabel">Δ</span>
+        {!prevBatch && <span className="dnone">första batchen — ingen jämförelse</span>}
+        {prevBatch && diffs.length===0 && <span className="dnone">identisk med B{String(prevBatch.id).padStart(2,'0')}</span>}
+        {diffs.map((d,k)=>{
+          if(d.kind==='delta') return (
+            <span key={k} className={'dchip '+(d.delta>0?'up':'dn')}>
+              {d.delta>0?'▲':'▼'} {d.name} {d.delta>0?'+':''}{fmtA(d.delta)} {d.unit}
+            </span>);
+          if(d.kind==='added')   return <span key={k} className="dchip add">+ {d.name} {fmtA(d.amount)} {d.unit}</span>;
+          if(d.kind==='removed') return <span key={k} className="dchip rem">{d.name}</span>;
+          return <span key={k} className="dchip">{d.name}: {d.from}→{d.to}</span>;
+        })}
+      </div>
+
+      {(batch.tags||[]).length>0 &&
+        <div className="tags">{batch.tags.map(t=><span key={t} className="tag">{t}</span>)}</div>}
+      {batch.notes && <p className="notes">{batch.notes}</p>}
+
+      <details>
+        <summary>Recept · {batch.volumeMl} ml glas</summary>
+        <table className="itable"><tbody>
+          {(batch.ingredients||[]).map((i,k)=>
+            <tr key={k}><td>{i.name}</td><td>{fmtA(i.amount)} {i.unit}</td></tr>)}
+        </tbody></table>
+      </details>
+
+      <details>
+        <summary>Koncentrat ×{SCALE} · 500 ml sirap</summary>
+        <table className="itable"><tbody>
+          {conc.map((i,k)=>
+            <tr key={k}><td>{i.name}</td>
+              <td>{i.scalable ? fmtA(i.amount)+' '+i.unit : 'efter smak'}</td></tr>)}
+          <tr><td>Atamon (natriumbensoat)</td><td>0,5 g</td></tr>
+          <tr><td>Kaliumsorbat</td><td>0,5 g</td></tr>
+        </tbody></table>
+        <p className="knote">Dosering: 20 ml sirap per 500 ml kolsyrat vatten (40 ml/l).
+          Kräver pH &lt; 4,5 för att bensoatet ska verka — mät före flaskning.
+          Steril flaska, kyl. Sukralos vägs via stamlösning 1 g / 100 ml (1 ml = 10 mg).</p>
+        {eryt && eryt.amount > 100 &&
+          <p className="kwarn">⚠ Erytritol {fmtA(eryt.amount)} g / 500 ml ligger över löslighetsgränsen
+            (~100 g) — lös varmt eller sänk mängden.</p>}
+      </details>
+
+      <div className="cactions">
+        <button onClick={onEdit}>Redigera</button>
+        <button className="del" onClick={onDelete}>Radera</button>
+      </div>
+    </article>
+  );
+}
+
+/* ---------- editor ---------- */
+function Editor({initial, title, onSave, onCancel}){
+  const [b, setB] = useState(initial);
+  const set = patch => setB(x=>({...x, ...patch}));
+  const setIng = (k, patch) => set({ingredients: b.ingredients.map((i,ix)=>ix===k?{...i,...patch}:i)});
+  const bodyRef = useRef(null);
+
+  function save(){
+    const ings = b.ingredients
+      .map(i=>({...i, name:i.name.trim(), amount:parseFloat(String(i.amount).replace(',','.'))}))
+      .filter(i=>i.name && !isNaN(i.amount));
+    if(ings.length===0){ alert('Minst en ingrediens med namn och mängd behövs.'); return; }
+    const seen = {};
+    for(const i of ings){
+      if(seen[i.name]){ alert('Dubblett: "'+i.name+'". Slå ihop raderna först.'); return; }
+      seen[i.name] = 1;
+    }
+    const ph = b.ph==='' || b.ph==null ? null : parseFloat(String(b.ph).replace(',','.'));
+    onSave({...b, ingredients:ings, ph:(ph!=null && !isNaN(ph))?ph:null,
+      volumeMl:parseFloat(b.volumeMl)||500, notes:(b.notes||'').trim()});
+  }
+
+  return (
+    <div>
+      <div className="sheet-bg" onClick={onCancel}></div>
+      <div className="sheet" role="dialog" aria-label={title}>
+        <div className="sheet-h"><b>{title}</b><button onClick={onCancel}>stäng</button></div>
+        <div className="sheet-body" ref={bodyRef}>
+
+          <div className="frow two">
+            <div><label className="flabel" htmlFor="f-date">Datum</label>
+              <input id="f-date" type="date" value={b.date} onChange={e=>set({date:e.target.value})}/></div>
+            <div><label className="flabel" htmlFor="f-vol">Glasvolym (ml)</label>
+              <input id="f-vol" inputMode="numeric" value={b.volumeMl}
+                onChange={e=>set({volumeMl:e.target.value})}/></div>
+          </div>
+
+          <div className="frow">
+            <span className="flabel">Ingredienser (per glas)</span>
+            {b.ingredients.map((i,k)=>
+              <div className="irow" key={k}>
+                <input className="in-name" value={i.name} placeholder="namn"
+                  onChange={e=>setIng(k,{name:e.target.value})}/>
+                <input className="in-amt" inputMode="decimal" value={i.amount}
+                  onChange={e=>setIng(k,{amount:e.target.value})}/>
+                <select className="in-unit" value={i.unit} onChange={e=>setIng(k,{unit:e.target.value})}>
+                  {UNITS.map(u=><option key={u} value={u}>{u}</option>)}
+                </select>
+                <button className="rm" aria-label={'ta bort '+i.name}
+                  onClick={()=>set({ingredients:b.ingredients.filter((_,ix)=>ix!==k)})}>×</button>
+              </div>)}
+            <button className="addrow"
+              onClick={()=>{ set({ingredients:[...b.ingredients, {name:'', amount:'', unit:'g'}]});
+                setTimeout(()=>{ const el=bodyRef.current; if(el) el.scrollTop=el.scrollHeight; },0); }}>
+              + ingrediens</button>
+          </div>
+
+          <div className="frow">
+            <label className="flabel" htmlFor="f-ph">pH (uppmätt)</label>
+            <input id="f-ph" inputMode="decimal" placeholder="t.ex. 3,4" value={b.ph??''}
+              onChange={e=>set({ph:e.target.value})}/>
+          </div>
+
+          <div className="frow">
+            <span className="flabel">Betyg</span>
+            <div className="rate">
+              {[1,2,3,4,5,6,7,8,9,10].map(n=>
+                <button key={n} className={b.rating===n?'on':''}
+                  onClick={()=>set({rating: b.rating===n?null:n})}>{n}</button>)}
+            </div>
+          </div>
+
+          <div className="frow">
+            <span className="flabel">Smaktaggar</span>
+            <div className="tagpick">
+              {TAGS.map(t=>
+                <button key={t} className={(b.tags||[]).includes(t)?'on':''}
+                  onClick={()=>set({tags:(b.tags||[]).includes(t)
+                    ? b.tags.filter(x=>x!==t) : [...(b.tags||[]), t]})}>{t}</button>)}
+            </div>
+          </div>
+
+          <div className="frow">
+            <span className="flabel">Status</span>
+            <div className="seg">
+              {['utkast','testad'].map(s=>
+                <button key={s} className={b.status===s?'on':''}
+                  onClick={()=>set({status:s})}>{s}</button>)}
+            </div>
+          </div>
+
+          <div className="frow">
+            <label className="flabel" htmlFor="f-notes">Noter</label>
+            <textarea id="f-notes" placeholder="lukt, färg, munkänsla, nästa drag…"
+              value={b.notes||''} onChange={e=>set({notes:e.target.value})}/>
+          </div>
+        </div>
+        <div className="sheet-foot">
+          <button className="cancel" onClick={onCancel}>Avbryt</button>
+          <button className="save" onClick={save}>Spara batch</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- app ---------- */
+function App(){
+  const [batches, setBatches] = useState(()=> (store.load()||{}).batches || []);
+  const [editing, setEditing] = useState(null); /* {mode:'new'|'edit', batch} */
+  const fileRef = useRef(null);
+
+  useEffect(()=>{ store.save({schema:1, product:'Vit energi (koffeinfri)', batches}); }, [batches]);
+
+  const sorted = useMemo(()=>[...batches].sort((a,b)=>b.id-a.id), [batches]);
+  const bestId = useMemo(()=>{
+    let best=null;
+    for(const b of batches) if(b.rating!=null && (best==null || b.rating>best.rating ||
+      (b.rating===best.rating && b.id>best.id))) best=b;
+    return best?best.id:null;
+  }, [batches]);
+  const prevOf = b => {
+    const lower = batches.filter(x=>x.id<b.id);
+    return lower.length ? lower.reduce((a,c)=>c.id>a.id?c:a) : null;
+  };
+
+  function newBatch(){
+    const latest = batches.length ? batches.reduce((a,c)=>c.id>a.id?c:a) : null;
+    const base = latest
+      ? {ingredients: latest.ingredients.map(i=>({...i})), volumeMl: latest.volumeMl}
+      : {ingredients: SEED.map(i=>({...i})), volumeMl: 500};
+    setEditing({mode:'new', batch:{ id: nextBatchId(batches), date: today(), status:'utkast',
+      ph:null, rating:null, tags:[], notes:'', ...base }});
+  }
+  function saveBatch(b){
+    setBatches(list => editing.mode==='new'
+      ? [...list, b] : list.map(x=>x.id===b.id ? b : x));
+    setEditing(null);
+  }
+  function delBatch(b){
+    if(confirm('Radera B'+String(b.id).padStart(2,'0')+'? Går inte att ångra.'))
+      setBatches(list=>list.filter(x=>x.id!==b.id));
+  }
+  function exportJson(){
+    download('energy-batchlog.json',
+      JSON.stringify({schema:1, product:'Vit energi (koffeinfri)', batches}, null, 2),
+      'application/json');
+  }
+  function exportCsv(){
+    const ordered = [...batches].sort((a,b)=>a.id-b.id);
+    download('energy-batchlog.csv', buildCsv(ordered), 'text/csv');
+  }
+  function importJson(e){
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if(!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const doc = JSON.parse(r.result);
+        if(!doc || !Array.isArray(doc.batches)) throw new Error('fel format');
+        if(confirm('Ersätt nuvarande logg med '+doc.batches.length+' batcher från filen?'))
+          setBatches(doc.batches);
+      } catch(err){ alert('Kunde inte läsa filen: '+err.message); }
+    };
+    r.readAsText(f);
+  }
+
+  return (
+    <div className="wrap">
+      <header>
+        <div>
+          <div className="eyebrow">Receptutveckling</div>
+          <h1>Batchlogg · Vit energi</h1>
+        </div>
+        <div className={'stor'+(store.ok?'':' off')}>
+          <span className="dot"></span>{store.ok?'sparas lokalt':'sparas ej'}
+        </div>
+      </header>
+
+      {!store.ok &&
+        <div className="banner">localStorage är blockerat i den här vyn (t.ex. Claude-förhandsvisning).
+          Allt funkar, men data försvinner vid omladdning — på Hubben sparas den. Exportera JSON som backup.</div>}
+
+      <button className="newbtn" onClick={newBatch}>
+        + Ny batch{batches.length>0 ? ' (klonar B'+String(batches.reduce((m,b)=>Math.max(m,b.id),0)).padStart(2,'0')+')' : ''}
+      </button>
+      <div className="subhint">klona → justera ett värde → smaka → betygsätt</div>
+
+      {sorted.length===0 &&
+        <div className="empty">Inga batcher än.<br/>Första batchen förifylls med startreceptet (v1) —
+          tryck på knappen ovan när ingredienserna kommit.</div>}
+
+      {sorted.map(b=>
+        <BatchCard key={b.id} batch={b} prevBatch={prevOf(b)} isBest={b.id===bestId}
+          onEdit={()=>setEditing({mode:'edit', batch:{...b, ingredients:b.ingredients.map(i=>({...i}))}})}
+          onDelete={()=>delBatch(b)}/>)}
+
+      <footer className="cred">×25-skalan antar 20 ml sirap / 500 ml glas · schema v1</footer>
+
+      {editing &&
+        <Editor initial={editing.batch}
+          title={editing.mode==='new' ? 'Ny batch B'+String(editing.batch.id).padStart(2,'0')
+                                      : 'Redigera B'+String(editing.batch.id).padStart(2,'0')}
+          onSave={saveBatch} onCancel={()=>setEditing(null)}/>}
+
+      <div className="toolbar"><div className="in">
+        <button onClick={exportJson}>Exportera JSON</button>
+        <button onClick={exportCsv}>Exportera CSV</button>
+        <label>Importera JSON
+          <input ref={fileRef} type="file" accept=".json,application/json" onChange={importJson}/>
+        </label>
+      </div></div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
