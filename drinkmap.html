@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Var får man dricka i Umeå?</title>
+<meta name="description" content="Karta över var det är förbjudet att dricka alkohol på offentlig plats i Umeå kommun, enligt de lokala ordningsföreskrifterna (12 §).">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<style>
+  :root {
+    --snow: #F5F7F4;
+    --snow-2: #E8ECE7;
+    --ink: #141A17;
+    --ink-2: #3A443F;
+    --mute: #74807A;
+    --aurora: #3BE0A0;
+    --ban: #D63B3B;
+    --ban-time: #E08A1E;
+    --ok: #2E9E5B;
+    --unclear: #7C868E;
+    --font: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "Spline Sans Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--snow); color: var(--ink); font-family: var(--font); -webkit-text-size-adjust: 100%; }
+  button { font-family: inherit; }
+  a { color: var(--ink); text-decoration-color: var(--aurora); text-decoration-thickness: 2px; text-underline-offset: 2px; }
+  :focus-visible { outline: 3px solid var(--aurora); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+  /* ---- app frame ---- */
+  .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+  .top { flex: none; display: flex; align-items: center; gap: 10px; padding: 9px 14px 8px; background: var(--snow); border-bottom: 2px solid var(--aurora); }
+  .top .grow { flex: 1; min-width: 0; }
+  .top h1 { margin: 0; font-size: 18px; line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; }
+  .top .sub { margin: 2px 0 0; font-size: 12px; line-height: 1.3; color: var(--mute); }
+  .seg { display: inline-flex; flex: none; border: 1px solid rgba(20,26,23,.28); border-radius: 999px; overflow: hidden; }
+  .seg button { border: 0; background: transparent; padding: 6px 10px; font-size: 12px; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+  .seg button.on { background: var(--ink); color: var(--snow); }
+
+  .stage { flex: 1; display: flex; min-height: 0; position: relative; }
+  .mapwrap { flex: 1; position: relative; min-width: 0; }
+  #map { position: absolute; inset: 0; background: #dfe6e1; }
+
+  /* ---- sheet / panel ---- */
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 64%; display: flex; flex-direction: column; background: var(--snow); border-radius: 18px 18px 0 0; box-shadow: 0 -6px 24px rgba(20,26,23,.16); z-index: 500; transition: max-height .22s ease; }
+  .sheet.collapsed { max-height: 60px; }
+  .sheet-head { position: relative; flex: none; display: flex; align-items: center; gap: 10px; padding: 16px 14px 10px; cursor: pointer; }
+  .handle { position: absolute; left: 50%; top: 6px; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: rgba(20,26,23,.22); }
+  .sheet-head h2 { margin: 0; flex: 1; min-width: 0; font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sheet-body { flex: 1; min-height: 0; overflow: auto; padding: 0 14px 18px; padding-bottom: calc(18px + env(safe-area-inset-bottom)); -webkit-overflow-scrolling: touch; }
+  .sheet-body p { margin: 0 0 10px; font-size: 15px; line-height: 1.45; max-width: 62ch; }
+  .drawbar { display: flex; align-items: center; gap: 8px; padding: 12px 14px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .drawbar .grow { flex: 1; min-width: 0; }
+  .drawbar .hint { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @media (min-width: 860px) {
+    .sheet { position: static; width: 400px; max-height: none; border-radius: 0; box-shadow: none; border-left: 1px solid var(--snow-2); }
+    .sheet.collapsed { max-height: none; }
+    .handle { display: none; }
+    .sheet-head { cursor: default; padding-top: 14px; }
+    .top h1 { font-size: 20px; }
+  }
+
+  /* ---- controls ---- */
+  .btn { appearance: none; border: 1px solid var(--ink); background: var(--ink); color: var(--snow); font-size: 14px; font-weight: 600; padding: 9px 14px; border-radius: 10px; cursor: pointer; min-height: 38px; line-height: 1.2; white-space: nowrap; }
+  .btn.ghost { background: transparent; color: var(--ink); }
+  .btn.small { padding: 6px 10px; font-size: 13px; min-height: 32px; }
+  .btn.danger { border-color: var(--ban); color: var(--ban); background: transparent; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btnrow { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+  .small { font-size: 13px !important; line-height: 1.4 !important; }
+  .mute { color: var(--mute); }
+  .mono { font-family: var(--mono); font-size: 13px; }
+
+  .badge { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; padding: 3px 10px 3px 4px; border-radius: 999px; background: var(--snow-2); }
+  .meta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 2px 0 12px; }
+  .grp-tag { font-size: 13px; color: var(--mute); }
+  .sw { flex: none; border-radius: 5px; }
+  .sw.none { display: inline-block; width: 18px; height: 18px; border: 1.5px dashed rgba(20,26,23,.35); background: transparent; }
+  .sw.none.small { width: 14px; height: 14px; }
+  .legend { display: grid; gap: 8px; margin: 12px 0 14px; }
+  .lg { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 12px 0; font-size: 14px; }
+  .facts dt { color: var(--mute); }
+  .facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+  .status { padding: 10px 12px; border-radius: 10px; background: var(--snow-2); font-size: 13px; line-height: 1.4; margin: 0 0 10px; }
+  .status.draft { background: rgba(59,224,160,.18); }
+  details.pdfs { margin: 4px 0 8px; font-size: 14px; }
+  details.pdfs summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+  details.pdfs ul { margin: 4px 0 6px; padding-left: 18px; }
+  details.pdfs li { margin: 4px 0; }
+  .grp { margin: 16px 0 4px; font-size: 13px; font-weight: 700; color: var(--ink-2); }
+  .row { display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--snow-2); }
+  .row.on { background: rgba(59,224,160,.16); margin: 0 -14px; padding: 0 14px; }
+  .rowbtn { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; background: transparent; border: 0; padding: 10px 2px; text-align: left; color: inherit; cursor: pointer; }
+  .rowbtn .nm { flex: 1; min-width: 0; font-size: 15px; line-height: 1.3; }
+  .rowbtn .st { flex: none; font-size: 12px; color: var(--mute); }
+  .f { display: block; margin: 10px 0; }
+  .f > span { display: block; font-size: 12px; font-weight: 600; color: var(--ink-2); margin-bottom: 4px; }
+  .f input, .f textarea, .f select { width: 100%; font: inherit; font-size: 15px; padding: 8px 10px; border: 1px solid rgba(20,26,23,.22); border-radius: 10px; background: #fff; color: var(--ink); }
+  .f textarea { min-height: 64px; resize: vertical; }
+  .toast { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); background: var(--ink); color: var(--snow); padding: 9px 14px; border-radius: 10px; font-size: 13px; line-height: 1.35; z-index: 1100; max-width: min(92%, 420px); box-shadow: 0 4px 16px rgba(0,0,0,.25); }
+  .empty { padding: 20px 0; color: var(--mute); font-size: 14px; }
+
+  /* ---- map markers & zones ---- */
+  .vh { width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2.5px solid var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+  .vh.sel { background: var(--aurora); }
+  .mh { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,.85); border: 1.5px dashed var(--ink); }
+  .dp { width: 10px; height: 10px; border-radius: 50%; background: var(--ink); border: 2px solid #fff; }
+  .dp.first { width: 18px; height: 18px; background: var(--aurora); border: 3px solid var(--ink); }
+  path.zone { fill-opacity: 1; }
+  path.zone-ban { fill: url(#p-ban); }
+  path.zone-ban_time { fill: url(#p-ban_time); }
+  path.zone-allowed { fill: url(#p-allowed); }
+  path.zone-unclear { fill: url(#p-unclear); }
+  path.zone-draft { fill: url(#p-draft); stroke: none; }
+  path.zone.sel { stroke: var(--ink); stroke-width: 4; }
+  .leaflet-container { font-family: var(--font); }
+  .leaflet-control-attribution { font-size: 10px; background: rgba(245,247,244,.8); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="p-ban" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+      <rect width="8" height="8" fill="#D63B3B" fill-opacity="0.16"/>
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#D63B3B" stroke-width="2.2" stroke-opacity="0.75"/>
+    </pattern>
+    <pattern id="p-ban_time" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(-45)">
+      <rect width="8" height="8" fill="#E08A1E" fill-opacity="0.14"/>
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#E08A1E" stroke-width="2.2" stroke-opacity="0.8" stroke-dasharray="4 2"/>
+    </pattern>
+    <pattern id="p-allowed" patternUnits="userSpaceOnUse" width="8" height="8">
+      <rect width="8" height="8" fill="#2E9E5B" fill-opacity="0.24"/>
+    </pattern>
+    <pattern id="p-unclear" patternUnits="userSpaceOnUse" width="8" height="8">
+      <rect width="8" height="8" fill="#7C868E" fill-opacity="0.12"/>
+      <circle cx="4" cy="4" r="1.5" fill="#7C868E" fill-opacity="0.8"/>
+    </pattern>
+    <pattern id="p-draft" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+      <rect width="8" height="8" fill="#141A17" fill-opacity="0.08"/>
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#141A17" stroke-width="1.5" stroke-opacity="0.45"/>
+    </pattern>
+  </defs>
+</svg>
+<div id="root"></div>
+<noscript>Den här sidan kräver JavaScript.</noscript>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" crossorigin></script>
+
+<script type="text/babel" data-presets="react">
+// =====================================================================
+// CONFIG
+// =====================================================================
+const DATA_FILE = 'umea-zones.geojson';           // published data, next to this html
+const LS_ZONES  = 'umea-drinkmap.zones.v1';       // local draft (editor only)
+const LS_LANG   = 'umea-drinkmap.lang';
+const UMEA_CENTER = [63.8258, 20.2630];
+const EDIT = /[?#]edit(\b|=)/i.test(location.href); // open .../drinkmap.html#edit to edit
+
+const SRC = 'https://www.umea.se/kommunochpolitik/kommunfakta/reglerochstyrandedokument/lokalaforeskrifter/fortaringavalkohol.4.533ba3d3171b940e900505.html';
+const SRC_LABEL = 'Umeå kommun, lokala ordningsföreskrifter 12 §';
+const PDF = {
+  centrum:   'https://www.umea.se/download/18.65a72e98193d271e31ea1f0/1750837444152/Karta%20%C3%B6ver%20f%C3%B6rbudsomr%C3%A5de,%20centrala%20Ume%C3%A5.pdf',
+  norr:      'https://www.umea.se/download/18.65a72e98193d271e31ea1ef/1750837427690/Karta%20%C3%B6ver%20f%C3%B6rbudsomr%C3%A5de,%20Alvik,%20Ersboda,%20Nydala%20och%20Sjukhusomr%C3%A5det.pdf',
+  holmsund:  'https://www.umea.se/download/18.65a72e98193d271e31ea1f1/1750837453970/Karta%20%C3%B6ver%20f%C3%B6rbudsomr%C3%A5de,%20Holmsund.pdf',
+  hornefors: 'https://www.umea.se/download/18.65a72e98193d271e31ea1f2/1750837464706/Karta%20%C3%B6ver%20f%C3%B6rbudsomr%C3%A5de,%20H%C3%B6rnefors%20och%20S%C3%A4var.pdf',
+};
+const PDFS = [
+  ['Centrala Umeå', PDF.centrum],
+  ['Alvik, Ersboda, Nydala och sjukhusområdet', PDF.norr],
+  ['Holmsund', PDF.holmsund],
+  ['Hörnefors och Sävar', PDF.hornefors],
+];
+
+const TYPES = ['ban', 'ban_time', 'allowed', 'unclear'];
+const TYPE_COLOR = { ban: '#D63B3B', ban_time: '#E08A1E', allowed: '#2E9E5B', unclear: '#7C868E' };
+
+// =====================================================================
+// ZONES DATA START
+// Fallback data when umea-zones.geojson is missing next to the html.
+// To embed an export instead: replace everything between START and END with
+//   const ZONES = <contents of umea-zones.geojson>;
+// =====================================================================
+const CHECKED = '2026-09-01'; // date the list below was checked against the kommun page
+const Z = (id, name, group, map, rules, rules_en, extra) => ({
+  type: 'Feature', id,
+  properties: Object.assign({ id, name, group, type: 'ban', time: '', rules, rules_en,
+    source: SRC, sourceLabel: SRC_LABEL, map, checked: CHECKED, notes: '' }, extra || {}),
+  geometry: null,
+});
+const CHECK_MAP = 'Kontrollera vilken av kommunens kartor som visar området.';
+const ZONES = {
+  type: 'FeatureCollection',
+  meta: { kommun: 'Umeå', paragraph: '12 §', source: SRC, sourceUpdated: '2026-01-05' },
+  features: [
+    // --- Centrala Umeå ---
+    Z('centrala-umea', 'Centrala Umeå', 'Centrala Umeå', PDF.centrum,
+      'Offentliga platser i centrum, avgränsat av Järnvägsallén i norr, Umeälven i söder, Västra Esplanaden i väster och Östra Kyrkogatan i öster.',
+      'Public places in the city centre, bounded by Järnvägsallén to the north, the Ume river to the south, Västra Esplanaden to the west and Östra Kyrkogatan to the east.'),
+    Z('strandpromenaden-vast', 'Strandpromenaden, Tvärån–Tegsbron', 'Centrala Umeå', PDF.centrum,
+      'Strandpromenaden med angränsande grönområden från Tvärån till Tegsbrons norra fäste.',
+      'The riverside walk and adjoining green areas from Tvärån to the north end of Tegsbron.'),
+    Z('strandpromenaden-ost', 'Strandpromenaden, Kyrkbron–Öbackaparken', 'Centrala Umeå', PDF.centrum,
+      'Strandpromenaden med angränsande grönområden från Kyrkbron till Öbackaparken.',
+      'The riverside walk and adjoining green areas from Kyrkbron to Öbackaparken.'),
+    Z('broparken', 'Broparken', 'Centrala Umeå', PDF.centrum, 'Hela parken.', 'The whole park.'),
+    Z('dobelns-park', 'Döbelns park', 'Centrala Umeå', PDF.centrum, 'Hela parken.', 'The whole park.'),
+    Z('sparken', 'Sparken', 'Centrala Umeå', PDF.centrum, 'Hela parken.', 'The whole park.'),
+    Z('tjarhovsparken', 'Tjärhovsparken', 'Centrala Umeå', PDF.centrum, 'Hela parken.', 'The whole park.'),
+    Z('varvsparken', 'Varvsparken', 'Centrala Umeå', PDF.centrum, 'Hela parken.', 'The whole park.'),
+    Z('obackaparken', 'Öbackaparken', 'Centrala Umeå', PDF.centrum, 'Hela parken.', 'The whole park.'),
+    Z('bolesholmarna', 'Bölesholmarna', 'Centrala Umeå', PDF.centrum, 'Hela området.', 'The whole area.'),
+    Z('godsbangarden', 'Godsbangården', 'Centrala Umeå', PDF.centrum, 'Hela godsbangårdsområdet.', 'The whole freight-yard area.'),
+    // --- Övriga Umeå ---
+    Z('alidhems-centrum', 'Ålidhems centrum', 'Övriga Umeå', PDF.centrum,
+      'Utomhusmiljöerna kring Ålidhems centrum, med avgränsning mot den bortre fotbollsplanen.',
+      'The outdoor areas around Ålidhem centre, extending to the far football pitch.', { notes: CHECK_MAP }),
+    Z('ersboda-folkets-hus', 'Ersboda Folkets Hus', 'Övriga Umeå', PDF.norr,
+      'Utomhusmiljön kring Ersboda Folkets Hus.', 'The outdoor area around Ersboda Folkets Hus.'),
+    Z('nydala', 'Nydalaområdet', 'Övriga Umeå', PDF.norr,
+      'Friluftsbadet, sportområdet och angränsande parkeringar.',
+      'The outdoor swimming area, the sports area and adjoining car parks.'),
+    Z('nus', 'Norrlands universitetssjukhus', 'Övriga Umeå', PDF.norr,
+      'Utomhusmiljön kring sjukhuset, inklusive parkeringen mot Region Västerbottens huvudkontor (tidigare Landstingshuset).',
+      'The outdoor area around the university hospital, including the car park facing Region Västerbotten\u2019s head office (formerly Landstingshuset).'),
+    Z('gammlia-parkering', 'Gammlia arenor, parkering', 'Övriga Umeå', PDF.centrum,
+      'Parkeringsytan vid Gammlia arenor.', 'The car park at the Gammlia arenas.', { notes: CHECK_MAP }),
+    Z('teg-ishall-parkering', 'Ishallen på Teg, parkering', 'Övriga Umeå', PDF.centrum,
+      'Parkeringsytan vid ishallen på Teg.', 'The car park at the ice rink in Teg.', { notes: CHECK_MAP }),
+    Z('nolia-parkering', 'Noliaområdet, parkeringar', 'Övriga Umeå', PDF.norr,
+      'Noliaområdets parkeringsytor, med avgränsning mot Ytterhiskevägen (väg 507).',
+      'The Nolia area car parks, bounded by Ytterhiskevägen (road 507).', { notes: CHECK_MAP }),
+    // --- Holmsund ---
+    Z('himmelska-fridens-torg', 'Himmelska fridens torg', 'Holmsund', PDF.holmsund, 'Hela torget.', 'The whole square.'),
+    Z('storsjoparken', 'Storsjöparken', 'Holmsund', PDF.holmsund, 'Hela parken.', 'The whole park.'),
+    Z('storsjoskolan-gronomrade', 'Grönområde öster om Storsjöskolan', 'Holmsund', PDF.holmsund,
+      'Grönområdet öster om Storsjöskolan.', 'The green area east of Storsjöskolan.'),
+    // --- Hörnefors ---
+    Z('hornefors-gronomrade', 'Hörnefors, grönområde vid Hörneån', 'Hörnefors', PDF.hornefors,
+      'Grönområdet som avgränsas av Långedsvägen i norr, Bruksgatan i väster och Hörneån i öster.',
+      'The green area bounded by Långedsvägen to the north, Bruksgatan to the west and the Hörneån river to the east.'),
+    Z('nordahlsvallen', 'Nordahlsvallen', 'Hörnefors', PDF.hornefors, 'Idrottsplatsen.', 'The sports ground.'),
+    Z('hornefors-kyrka', 'Hörnefors kyrka, utomhusmiljö', 'Hörnefors', PDF.hornefors,
+      'Utomhusmiljön kring kyrkan.', 'The outdoor area around the church.'),
+    // --- Sävar ---
+    Z('savar-centrum', 'Sävar, Sävarån mellan Generalsvägen och E4', 'Sävar', PDF.hornefors,
+      'Området mellan Generalsvägen i norr och E4 i söder, inklusive grönområdena på båda sidor om Sävarån och området mot Drottningvägen.',
+      'The area between Generalsvägen to the north and the E4 to the south, including the green areas on both sides of the Sävarån river and the area towards Drottningvägen.'),
+    Z('savar-majorsvagen', 'Sävar, öster om Generalsvägen–Majorsvägen', 'Sävar', PDF.hornefors,
+      'Ett område öster om korsningen Generalsvägen–Majorsvägen.', 'An area east of the Generalsvägen–Majorsvägen junction.'),
+    Z('savar-akervagen', 'Sävar, Åkervägen–Lärkstigen–Blomstervägen', 'Sävar', PDF.hornefors,
+      'Området som avgränsas av Sävarån i öster, Generalsvägen i söder och i övrigt av Åkervägen, Lärkstigen och Blomstervägen.',
+      'The area bounded by the Sävarån river to the east, Generalsvägen to the south and otherwise by Åkervägen, Lärkstigen and Blomstervägen.'),
+    Z('savar-kyrkvagen', 'Sävar, nordöst om Generalsvägen–Kyrkvägen', 'Sävar', PDF.hornefors,
+      'Grönområdet nordöst om korsningen Generalsvägen–Kyrkvägen.', 'The green area north-east of the Generalsvägen–Kyrkvägen junction.'),
+    // --- Resecentrum (kommunen listar dessa som exempel) ---
+    Z('umea-central', 'Umeå central', 'Resecentrum', PDF.centrum,
+      'I och i anslutning till resecentrum.', 'In and next to the travel centre.',
+      { notes: 'Kommunen anger resecentrum som exempel; exakt yta enligt kartan.' }),
+    Z('umea-ostra', 'Umeå östra', 'Resecentrum', PDF.norr,
+      'I och i anslutning till resecentrum.', 'In and next to the travel centre.',
+      { notes: 'Kommunen anger resecentrum som exempel; exakt yta enligt kartan.' }),
+    Z('hornefors-station', 'Hörnefors station', 'Resecentrum', PDF.hornefors,
+      'I och i anslutning till resecentrum.', 'In and next to the travel centre.',
+      { notes: 'Kommunen anger resecentrum som exempel; exakt yta enligt kartan.' }),
+    Z('umea-flygplats', 'Umeå flygplats', 'Resecentrum', '',
+      'I och i anslutning till flygplatsens resecentrum.', 'In and next to the airport travel centre.',
+      { notes: 'Kommunen anger resecentrum som exempel; exakt yta enligt kartan.' }),
+    Z('farjeterminalen-holmsund', 'Färjeterminalen, Holmsund', 'Resecentrum', PDF.holmsund,
+      'I och i anslutning till färjeterminalen.', 'In and next to the ferry terminal.',
+      { notes: 'Kommunen anger resecentrum som exempel; exakt yta enligt kartan.' }),
+  ],
+};
+// =====================================================================
+// ZONES DATA END
+// =====================================================================
+
+// =====================================================================
+// UI STRINGS
+// =====================================================================
+const T = {
+  sv: {
+    title: 'Var får man dricka i Umeå?',
+    subtitle: 'Alkoholförbud på offentlig plats enligt Umeå kommuns lokala ordningsföreskrifter, 12 §',
+    about: 'Så funkar kartan',
+    intro1: 'I de skrafferade zonerna får du inte dricka alkohol starkare än 3,5 % på offentlig plats. Uteserveringar med serveringstillstånd är undantagna.',
+    intro2: 'Utanför zonerna finns inget kommunalt förbud. Andra regler kan ändå gälla: polisen kan omhänderta den som är berusad (LOB), och privat mark, kollektivtrafik och evenemang har egna regler.',
+    intro3: 'Förbudet gäller också i och intill resecentrum för tåg, flyg och färja.',
+    types: { ban: 'Förbud', ban_time: 'Förbud vissa tider', allowed: 'Tillåtet (undantag)', unclear: 'Oklart' },
+    outside: 'Utanför zonerna: inget kommunalt förbud',
+    stats: (d, n) => `${d} av ${n} zoner är inritade.`,
+    sourceUpdated: 'Kommunens sida uppdaterad',
+    disclaimer: 'Zonerna är ritade för hand efter kommunens kartor och kan innehålla fel. Det här är inte juridisk rådgivning. Kontrollera alltid källan.',
+    officialSource: 'Källa: Umeå kommun, Förtäring av alkohol',
+    allZones: 'Alla zoner', close: 'Stäng', unnamed: 'namnlös',
+    notDrawn: 'Ej inritad', notDrawnLong: 'Zonen är inte inritad på kartan ännu.',
+    source: 'Källa', kommunMap: 'Kommunens karta', checked: 'Kontrollerad', notes: 'Anteckningar', time: 'Tider',
+    rulesInSwedish: '',
+    darkMap: 'Mörk karta', lightMap: 'Ljus karta',
+    loading: 'Laddar…',
+    // editor
+    edit: 'Redigera', stopEdit: 'Sluta redigera', editing: 'Redigering', doneEditing: 'Klar',
+    draft: 'Lokalt utkast. Sparas bara i den här webbläsaren tills du exporterar och publicerar.',
+    publishedData: 'Visar publicerad data', fromFile: 'umea-zones.geojson', fromEmbedded: 'inbyggd i html-filen',
+    newZone: 'Ny zon', draw: 'Rita', redraw: 'Rita om',
+    exportBtn: 'Exportera GeoJSON', importBtn: 'Importera', resetDraft: 'Släng utkast',
+    pdfMaps: 'Kommunens kartor att rita efter (PDF)',
+    drawHint: 'Tryck på kartan för att sätta ut hörn. Minst 3. Tryck på det gröna första hörnet eller på Spara zon när du är klar.',
+    points: 'hörn', undoPoint: 'Ångra', cancel: 'Avbryt', saveZone: 'Spara zon',
+    vertexHint: 'Dra hörnen för att justera. Tryck på ett hörn för att markera det, tryck på en streckad mittpunkt för att lägga till ett hörn.',
+    removeVertex: 'Ta bort hörn', deleteZone: 'Ta bort zon', confirmDelete: 'Ta bort zonen? Det går inte att ångra.',
+    fields: { name: 'Namn', group: 'Område', type: 'Typ', time: 'Tider (om tidsbegränsat)',
+      rules: 'Regler / avgränsning (svenska)', rules_en: 'Regler / avgränsning (engelska)',
+      sourceLabel: 'Källa, text', source: 'Källa, länk', map: 'Kommunens karta, länk',
+      checked: 'Kontrollerad mot källan', notes: 'Anteckningar' },
+    exported: 'umea-zones.geojson nedladdad och kopierad. Lägg filen bredvid html-filen i Hub-repot, så läser sidan den automatiskt.',
+    imported: 'Importerad.', importConfirm: 'Ersätt alla zoner med filens innehåll?', importBad: 'Filen är inte en GeoJSON FeatureCollection.',
+    resetConfirm: 'Släng det lokala utkastet och visa publicerad data?',
+    noZones: 'Inga zoner ännu. Tryck på Ny zon.',
+  },
+  en: {
+    title: 'Where can you drink in Umeå?',
+    subtitle: 'Public drinking bans under Umeå municipality\u2019s local ordinance, section 12',
+    about: 'How the map works',
+    intro1: 'In the hatched zones you may not drink alcohol stronger than 3.5% in public places. Outdoor seating with a serving licence is exempt.',
+    intro2: 'Outside the zones there is no municipal ban. Other rules can still apply: the police may take intoxicated people into custody (LOB), and private land, public transport and events have their own rules.',
+    intro3: 'The ban also applies in and next to travel centres for trains, flights and ferries.',
+    types: { ban: 'Prohibited', ban_time: 'Prohibited at certain times', allowed: 'Allowed (exception)', unclear: 'Unclear' },
+    outside: 'Outside the zones: no municipal ban',
+    stats: (d, n) => `${d} of ${n} zones are drawn.`,
+    sourceUpdated: 'Municipality page updated',
+    disclaimer: 'The zones are traced by hand from the municipality\u2019s maps and may contain errors. This is not legal advice. Always check the source.',
+    officialSource: 'Source: Umeå kommun, Förtäring av alkohol (Swedish)',
+    allZones: 'All zones', close: 'Close', unnamed: 'unnamed',
+    notDrawn: 'Not drawn', notDrawnLong: 'This zone has not been drawn on the map yet.',
+    source: 'Source', kommunMap: 'Municipal map', checked: 'Checked', notes: 'Notes', time: 'Times',
+    rulesInSwedish: 'Description available in Swedish only.',
+    darkMap: 'Dark map', lightMap: 'Light map',
+    loading: 'Loading…',
+    edit: 'Edit', stopEdit: 'Stop editing', editing: 'Editing', doneEditing: 'Done',
+    draft: 'Local draft. Saved only in this browser until you export and publish.',
+    publishedData: 'Showing published data', fromFile: 'umea-zones.geojson', fromEmbedded: 'embedded in the html file',
+    newZone: 'New zone', draw: 'Draw', redraw: 'Redraw',
+    exportBtn: 'Export GeoJSON', importBtn: 'Import', resetDraft: 'Discard draft',
+    pdfMaps: 'Municipal maps to trace from (PDF)',
+    drawHint: 'Tap the map to place corners. At least 3. Tap the green first corner or Save zone when done.',
+    points: 'corners', undoPoint: 'Undo', cancel: 'Cancel', saveZone: 'Save zone',
+    vertexHint: 'Drag corners to adjust. Tap a corner to select it, tap a dashed midpoint to add a corner.',
+    removeVertex: 'Remove corner', deleteZone: 'Delete zone', confirmDelete: 'Delete this zone? This cannot be undone.',
+    fields: { name: 'Name', group: 'Area', type: 'Type', time: 'Times (if time-limited)',
+      rules: 'Rules / boundary (Swedish)', rules_en: 'Rules / boundary (English)',
+      sourceLabel: 'Source, label', source: 'Source, link', map: 'Municipal map, link',
+      checked: 'Checked against source', notes: 'Notes' },
+    exported: 'umea-zones.geojson downloaded and copied. Put the file next to the html in the Hub repo and the page reads it automatically.',
+    imported: 'Imported.', importConfirm: 'Replace all zones with the file contents?', importBad: 'The file is not a GeoJSON FeatureCollection.',
+    resetConfirm: 'Discard the local draft and show published data?',
+    noZones: 'No zones yet. Tap New zone.',
+  },
+};
+// =====================================================================
+// HELPERS
+// =====================================================================
+const { useState, useEffect, useRef } = React;
+
+const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+const lsDel = (k) => { try { localStorage.removeItem(k); } catch (e) {} };
+const today = () => new Date().toISOString().slice(0, 10);
+const isMobile = () => window.innerWidth < 860;
+const isDrawn = (z) => !!(z && z.pts && z.pts.length >= 3);
+
+// GeoJSON FeatureCollection -> internal [{...props, pts:[[lat,lng],...]|null}]
+function fromGeoJSON(fc) {
+  const feats = (fc && Array.isArray(fc.features)) ? fc.features : [];
+  return feats.map((f, i) => {
+    const p = f.properties || {};
+    let pts = null;
+    const g = f.geometry;
+    if (g && g.type === 'Polygon' && g.coordinates && g.coordinates[0] && g.coordinates[0].length >= 3) {
+      const ring = g.coordinates[0].map((c) => [c[1], c[0]]);
+      const a = ring[0], b = ring[ring.length - 1];
+      if (ring.length > 3 && a[0] === b[0] && a[1] === b[1]) ring.pop();
+      pts = ring;
+    }
+    return {
+      id: p.id || f.id || ('zone-' + i), name: p.name || '', group: p.group || '',
+      type: TYPES.includes(p.type) ? p.type : 'ban', time: p.time || '',
+      rules: p.rules || '', rules_en: p.rules_en || '', source: p.source || '',
+      sourceLabel: p.sourceLabel || '', map: p.map || '', checked: p.checked || '',
+      notes: p.notes || '', pts,
+    };
+  });
+}
+
+function toGeoJSON(zones) {
+  return {
+    type: 'FeatureCollection',
+    meta: Object.assign({}, ZONES.meta, { exported: new Date().toISOString() }),
+    features: zones.map((z) => {
+      const { pts, ...props } = z;
+      let geometry = null;
+      if (isDrawn(z)) {
+        const ring = pts.map((p) => [+p[1].toFixed(6), +p[0].toFixed(6)]);
+        ring.push(ring[0]);
+        geometry = { type: 'Polygon', coordinates: [ring] };
+      }
+      return { type: 'Feature', id: z.id, properties: props, geometry };
+    }),
+  };
+}
+
+async function loadData() {
+  let published = fromGeoJSON(ZONES), src = 'embedded';
+  try {
+    const r = await fetch(DATA_FILE, { cache: 'no-store' });
+    if (r.ok) {
+      const j = await r.json();
+      if (j && Array.isArray(j.features)) { published = fromGeoJSON(j); src = 'file'; }
+    }
+  } catch (e) { /* file:// or missing file -> embedded */ }
+  let draft = null;
+  if (EDIT) {
+    const raw = lsGet(LS_ZONES);
+    if (raw) { try { const j = JSON.parse(raw); if (j && Array.isArray(j.features)) draft = fromGeoJSON(j); } catch (e) {} }
+  }
+  return { published, draft, src };
+}
+
+// =====================================================================
+// SMALL COMPONENTS
+// =====================================================================
+function Swatch({ type, small }) {
+  const s = small ? 14 : 18;
+  return (
+    <svg className="sw" width={s} height={s} viewBox="0 0 18 18" aria-hidden="true">
+      <rect x="1" y="1" width="16" height="16" rx="4" fill={`url(#p-${type})`} stroke={TYPE_COLOR[type]} strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function Badge({ type, t }) {
+  return <span className="badge"><Swatch type={type} />{t.types[type]}</span>;
+}
+
+function Home({ t, zones, dark, setDark, onList }) {
+  const drawn = zones.filter(isDrawn).length;
+  return (
+    <div>
+      <p>{t.intro1}</p>
+      <p>{t.intro2}</p>
+      <p>{t.intro3}</p>
+      <div className="legend">
+        {TYPES.map((k) => <div className="lg" key={k}><Swatch type={k} /><span>{t.types[k]}</span></div>)}
+        <div className="lg"><span className="sw none" /><span>{t.outside}</span></div>
+      </div>
+      <p className="small mute">{t.stats(drawn, zones.length)}{ZONES.meta && ZONES.meta.sourceUpdated && <span> {t.sourceUpdated} <span className="mono">{ZONES.meta.sourceUpdated}</span>.</span>}</p>
+      <p className="small mute">{t.disclaimer}</p>
+      <p className="small"><a href={SRC} target="_blank" rel="noopener">{t.officialSource}</a></p>
+      <div className="btnrow">
+        <button className="btn ghost" onClick={onList}>{t.allZones}</button>
+        <button className="btn ghost" onClick={() => setDark(!dark)}>{dark ? t.lightMap : t.darkMap}</button>
+      </div>
+    </div>
+  );
+}
+
+function ZoneInfo({ z, t, lang }) {
+  const rules = lang === 'en' ? (z.rules_en || z.rules) : z.rules;
+  return (
+    <div>
+      <div className="meta-row"><Badge type={z.type} t={t} />{z.group && <span className="grp-tag">{z.group}</span>}</div>
+      {z.type === 'ban_time' && z.time && <p><strong>{t.time}:</strong> {z.time}</p>}
+      {rules && <p>{rules}</p>}
+      {lang === 'en' && !z.rules_en && z.rules && <p className="small mute">{t.rulesInSwedish}</p>}
+      {!isDrawn(z) && <p className="small mute">{t.notDrawnLong}</p>}
+      <dl className="facts">
+        {z.source && <React.Fragment><dt>{t.source}</dt><dd><a href={z.source} target="_blank" rel="noopener">{z.sourceLabel || z.source}</a></dd></React.Fragment>}
+        {z.map && <React.Fragment><dt>{t.kommunMap}</dt><dd><a href={z.map} target="_blank" rel="noopener">PDF</a></dd></React.Fragment>}
+        {z.checked && <React.Fragment><dt>{t.checked}</dt><dd className="mono">{z.checked}</dd></React.Fragment>}
+        {z.notes && <React.Fragment><dt>{t.notes}</dt><dd>{z.notes}</dd></React.Fragment>}
+      </dl>
+    </div>
+  );
+}
+
+function ZoneEdit({ z, t, groups, onChange, onDelete, onRedraw, selVertex, onRemoveVertex, onDone }) {
+  const F = (k, kind, type) => (
+    <label className="f" key={k}>
+      <span>{t.fields[k]}</span>
+      {kind === 'textarea'
+        ? <textarea value={z[k] || ''} onChange={(e) => onChange({ [k]: e.target.value })} />
+        : <input type={type || 'text'} list={k === 'group' ? 'groups' : undefined} value={z[k] || ''} onChange={(e) => onChange({ [k]: e.target.value })} />}
+    </label>
+  );
+  const drawn = isDrawn(z);
+  return (
+    <div>
+      <p className="small mute">{drawn ? t.vertexHint : t.notDrawnLong}</p>
+      <div className="btnrow">
+        {drawn && <button className="btn ghost small" disabled={selVertex == null || z.pts.length <= 3} onClick={onRemoveVertex}>{t.removeVertex}</button>}
+        <button className="btn ghost small" onClick={onRedraw}>{drawn ? t.redraw : t.draw}</button>
+      </div>
+      {F('name')}
+      {F('group')}
+      <datalist id="groups">{groups.map((g) => <option key={g} value={g} />)}</datalist>
+      <label className="f">
+        <span>{t.fields.type}</span>
+        <select value={z.type} onChange={(e) => onChange({ type: e.target.value })}>
+          {TYPES.map((k) => <option key={k} value={k}>{t.types[k]}</option>)}
+        </select>
+      </label>
+      {z.type === 'ban_time' && F('time')}
+      {F('rules', 'textarea')}
+      {F('rules_en', 'textarea')}
+      {F('sourceLabel')}
+      {F('source', 'input', 'url')}
+      {F('map', 'input', 'url')}
+      {F('checked', 'input', 'date')}
+      {F('notes', 'textarea')}
+      <div className="btnrow" style={{ marginTop: 14 }}>
+        <button className="btn" onClick={onDone}>{t.doneEditing}</button>
+        <button className="btn danger small" onClick={onDelete}>{t.deleteZone}</button>
+      </div>
+    </div>
+  );
+}
+
+function ZoneList({ zones, t, mode, selectedId, onSelect, onDraw }) {
+  if (!zones.length) return <div className="empty">{t.noZones}</div>;
+  const order = [], by = {};
+  zones.forEach((z) => { const g = z.group || '–'; if (!by[g]) { by[g] = []; order.push(g); } by[g].push(z); });
+  return (
+    <div>
+      {order.map((g) => (
+        <div key={g}>
+          <div className="grp">{g}</div>
+          {by[g].map((z) => {
+            const drawn = isDrawn(z);
+            return (
+              <div key={z.id} className={'row' + (z.id === selectedId ? ' on' : '')}>
+                <button className="rowbtn" onClick={() => onSelect(z.id, drawn)}>
+                  {drawn ? <Swatch type={z.type} small /> : <span className="sw none small" />}
+                  <span className="nm">{z.name || `(${t.unnamed})`}</span>
+                  {!drawn && <span className="st">{t.notDrawn}</span>}
+                </button>
+                {mode === 'edit' && !drawn && <button className="btn small" onClick={() => onDraw(z.id)}>{t.draw}</button>}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Editor({ t, zones, usingDraft, dataSrc, selectedId, onNew, onExport, onImportClick, onReset, onSelect, onDraw }) {
+  return (
+    <div>
+      <div className={'status' + (usingDraft ? ' draft' : '')}>
+        {usingDraft ? t.draft : `${t.publishedData} (${dataSrc === 'file' ? t.fromFile : t.fromEmbedded}).`}
+      </div>
+      <div className="btnrow">
+        <button className="btn" onClick={onNew}>{t.newZone}</button>
+        <button className="btn ghost" onClick={onExport}>{t.exportBtn}</button>
+        <button className="btn ghost" onClick={onImportClick}>{t.importBtn}</button>
+        {usingDraft && <button className="btn danger small" onClick={onReset}>{t.resetDraft}</button>}
+      </div>
+      <details className="pdfs">
+        <summary>{t.pdfMaps}</summary>
+        <ul>{PDFS.map(([n, u]) => <li key={u}><a href={u} target="_blank" rel="noopener">{n}</a></li>)}</ul>
+      </details>
+      <ZoneList zones={zones} t={t} mode="edit" selectedId={selectedId} onSelect={onSelect} onDraw={onDraw} />
+    </div>
+  );
+}
+
+function DrawBar({ t, n, name, onUndo, onCancel, onSave }) {
+  return (
+    <div className="drawbar">
+      <div className="grow">
+        <div className="hint">{name || t.newZone}</div>
+        <div className="mono">{n} {t.points}</div>
+      </div>
+      <button className="btn ghost small" onClick={onUndo} disabled={!n}>{t.undoPoint}</button>
+      <button className="btn ghost small" onClick={onCancel}>{t.cancel}</button>
+      <button className="btn small" onClick={onSave} disabled={n < 3}>{t.saveZone}</button>
+    </div>
+  );
+}
+
+// =====================================================================
+// APP
+// =====================================================================
+function App() {
+  const [zones, setZones] = useState(null);
+  const [published, setPublished] = useState(null);
+  const [usingDraft, setUsingDraft] = useState(false);
+  const [dataSrc, setDataSrc] = useState('');
+  const [lang, setLang] = useState(() => (lsGet(LS_LANG) === 'en' ? 'en' : 'sv'));
+  const [mode, setMode] = useState('view');       // view | edit
+  const [view, setView] = useState('home');       // home | list | zone
+  const [selectedId, setSelectedId] = useState(null);
+  const [drawing, setDrawing] = useState(null);   // { targetId, pts }
+  const [selVertex, setSelVertex] = useState(null);
+  const [collapsed, setCollapsed] = useState(false);
+  const [dark, setDark] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const t = T[lang];
+  const mapEl = useRef(null), mapRef = useRef(null);
+  const layers = useRef({}), polyRef = useRef({}), tiles = useRef({});
+  const fileRef = useRef(null), toastTimer = useRef(null), fitRef = useRef(null);
+  const st = useRef({});
+  st.current = { zones, mode, drawing, selectedId, selVertex, view, t };
+
+  const sel = zones ? zones.find((z) => z.id === selectedId) || null : null;
+  const groups = zones ? [...new Set(zones.map((z) => z.group).filter(Boolean))] : [];
+
+  // ---- data ----
+  const commit = (next) => {
+    setZones(next);
+    if (EDIT) { lsSet(LS_ZONES, JSON.stringify(toGeoJSON(next))); setUsingDraft(true); }
+  };
+  const commitZone = (id, patch) => {
+    const cur = st.current.zones || [];
+    commit(cur.map((z) => (z.id === id ? Object.assign({}, z, patch) : z)));
+  };
+  const showToast = (msg, ms) => {
+    setToast(msg); clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), ms || 3000);
+  };
+  const setLangP = (l) => { setLang(l); lsSet(LS_LANG, l); document.documentElement.lang = l; };
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    loadData().then(({ published, draft, src }) => {
+      setPublished(published); setDataSrc(src);
+      setZones(draft || published); setUsingDraft(!!draft);
+    });
+  }, []);
+
+  // ---- map init ----
+  useEffect(() => {
+    const map = L.map(mapEl.current, { zoomControl: false, attributionControl: false }).setView(UMEA_CENTER, 13);
+    L.control.zoom({ position: 'topright' }).addTo(map);
+    L.control.attribution({ position: isMobile() ? 'topleft' : 'bottomleft', prefix: false }).addTo(map);
+    tiles.current.light = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' });
+    tiles.current.dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19, subdomains: 'abcd',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>' });
+    tiles.current.light.addTo(map);
+    layers.current.zones = L.layerGroup().addTo(map);
+    layers.current.draw = L.layerGroup().addTo(map);
+    layers.current.handles = L.layerGroup().addTo(map);
+    map.on('click', (e) => {
+      const s = st.current;
+      if (s.drawing) {
+        setDrawing((d) => (d ? Object.assign({}, d, { pts: [...d.pts, [e.latlng.lat, e.latlng.lng]] }) : d));
+        return;
+      }
+      if (s.mode === 'view') { setSelectedId(null); setView('home'); }
+    });
+    mapRef.current = map;
+    return () => map.remove();
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current; if (!map) return;
+    const { light, dark: dk } = tiles.current;
+    if (dark) { map.removeLayer(light); dk.addTo(map); } else { map.removeLayer(dk); light.addTo(map); }
+  }, [dark]);
+
+  // ---- zones on the map ----
+  useEffect(() => {
+    const map = mapRef.current; if (!map || !zones) return;
+    const lg = layers.current.zones; lg.clearLayers(); polyRef.current = {};
+    zones.forEach((z) => {
+      if (!isDrawn(z)) return;
+      const isSel = z.id === selectedId;
+      const poly = L.polygon(z.pts, {
+        className: 'zone zone-' + z.type + (isSel ? ' sel' : ''),
+        color: TYPE_COLOR[z.type], weight: isSel ? 3 : 1.5,
+        interactive: !drawing, bubblingMouseEvents: false,
+      });
+      poly.on('click', () => { setSelVertex(null); setSelectedId(z.id); setView('zone'); setCollapsed(false); });
+      poly.addTo(lg); polyRef.current[z.id] = poly;
+    });
+    if (selectedId && polyRef.current[selectedId]) polyRef.current[selectedId].bringToFront();
+  }, [zones, selectedId, drawing]);
+
+  // fit to a zone selected from the list
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !zones || fitRef.current !== selectedId) return;
+    fitRef.current = null;
+    const z = zones.find((x) => x.id === selectedId);
+    if (!isDrawn(z)) return;
+    map.fitBounds(L.latLngBounds(z.pts), {
+      paddingTopLeft: [24, 24],
+      paddingBottomRight: [24, isMobile() ? Math.round(map.getSize().y * 0.5) : 24],
+      maxZoom: 17,
+    });
+  }, [selectedId, zones]);
+
+  // ---- drawing overlay ----
+  useEffect(() => {
+    const lg = layers.current.draw; if (!lg) return;
+    lg.clearLayers();
+    if (!drawing) return;
+    const pts = drawing.pts;
+    if (pts.length > 2) L.polygon(pts, { className: 'zone zone-draft', interactive: false, weight: 0 }).addTo(lg);
+    if (pts.length > 1) L.polyline(pts, { color: '#141A17', weight: 2, dashArray: '6 6', interactive: false }).addTo(lg);
+    if (pts.length > 2) L.polyline([pts[pts.length - 1], pts[0]], { color: '#141A17', weight: 1, opacity: .6, dashArray: '2 6', interactive: false }).addTo(lg);
+    pts.forEach((p, i) => {
+      const first = i === 0;
+      const m = L.marker(p, { icon: L.divIcon({ className: 'dp' + (first ? ' first' : ''), iconSize: first ? [18, 18] : [10, 10] }), interactive: first, keyboard: false });
+      if (first) m.on('click', () => finishDrawing());
+      m.addTo(lg);
+    });
+  }, [drawing]);
+
+  // ---- vertex handles for the zone being edited ----
+  useEffect(() => {
+    const lg = layers.current.handles; if (!lg) return;
+    lg.clearLayers();
+    if (mode !== 'edit' || drawing || !zones) return;
+    const z = zones.find((x) => x.id === selectedId);
+    if (!isDrawn(z)) return;
+    const pts = z.pts.map((p) => [p[0], p[1]]);
+    const poly = polyRef.current[z.id];
+    const n = pts.length;
+    const midPos = (i) => { const a = pts[i], b = pts[(i + 1) % n]; return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; };
+    const mids = pts.map((_, i) => {
+      const m = L.marker(midPos(i), { icon: L.divIcon({ className: 'mh', iconSize: [12, 12] }), keyboard: false });
+      m.on('click', () => {
+        const np = pts.slice(); np.splice(i + 1, 0, midPos(i));
+        commitZone(z.id, { pts: np }); setSelVertex(i + 1);
+      });
+      return m.addTo(lg);
+    });
+    pts.forEach((p, i) => {
+      const m = L.marker(p, { draggable: true, keyboard: false,
+        icon: L.divIcon({ className: 'vh' + (i === selVertex ? ' sel' : ''), iconSize: [16, 16] }) });
+      m.on('click', () => setSelVertex((v) => (v === i ? null : i)));
+      m.on('drag', (e) => {
+        pts[i] = [e.latlng.lat, e.latlng.lng];
+        if (poly) poly.setLatLngs(pts);
+        mids[i].setLatLng(midPos(i)); mids[(i - 1 + n) % n].setLatLng(midPos((i - 1 + n) % n));
+      });
+      m.on('dragend', () => commitZone(z.id, { pts: pts.map((q) => [q[0], q[1]]) }));
+      m.addTo(lg);
+    });
+  }, [zones, selectedId, mode, drawing, selVertex]);
+
+  // ---- actions ----
+  const selectZone = (id, fit) => {
+    if (fit) fitRef.current = id;
+    setSelVertex(null); setSelectedId(id); setView('zone'); setCollapsed(false);
+  };
+  const closeZone = () => { setSelectedId(null); setSelVertex(null); setView(mode === 'edit' ? 'home' : 'home'); };
+  const toggleMode = () => {
+    if (mode === 'edit') { setDrawing(null); setSelVertex(null); setMode('view'); setView('home'); }
+    else { setMode('edit'); setView('home'); setCollapsed(false); }
+  };
+  const startDrawing = (targetId) => {
+    setSelVertex(null); setSelectedId(targetId || null);
+    setDrawing({ targetId: targetId || null, pts: [] });
+    setCollapsed(true); showToast(t.drawHint, 6000);
+  };
+  const finishDrawing = () => {
+    const s = st.current, d = s.drawing;
+    if (!d || d.pts.length < 3) return;
+    const cur = s.zones || [];
+    if (d.targetId) {
+      commit(cur.map((z) => (z.id === d.targetId ? Object.assign({}, z, { pts: d.pts }) : z)));
+      setSelectedId(d.targetId);
+    } else {
+      const id = 'zone-' + Date.now().toString(36);
+      commit([...cur, { id, name: '', group: '', type: 'ban', time: '', rules: '', rules_en: '',
+        source: SRC, sourceLabel: SRC_LABEL, map: '', checked: today(), notes: '', pts: d.pts }]);
+      setSelectedId(id);
+    }
+    setDrawing(null); setView('zone'); setCollapsed(false);
+  };
+  const cancelDrawing = () => {
+    const d = drawing; setDrawing(null); setCollapsed(false);
+    setView(d && d.targetId ? 'zone' : 'home');
+  };
+  const undoPoint = () => setDrawing((d) => (d ? Object.assign({}, d, { pts: d.pts.slice(0, -1) }) : d));
+  const redrawZone = () => { if (!sel) return; commitZone(sel.id, { pts: null }); startDrawing(sel.id); };
+  const removeVertex = () => {
+    if (!sel || selVertex == null || sel.pts.length <= 3) return;
+    commitZone(sel.id, { pts: sel.pts.filter((_, i) => i !== selVertex) }); setSelVertex(null);
+  };
+  const deleteZone = () => {
+    if (!sel || !confirm(t.confirmDelete)) return;
+    commit(zones.filter((z) => z.id !== sel.id)); setSelectedId(null); setSelVertex(null); setView('home');
+  };
+  const exportGeo = () => {
+    const txt = JSON.stringify(toGeoJSON(st.current.zones || []), null, 2);
+    const url = URL.createObjectURL(new Blob([txt], { type: 'application/geo+json' }));
+    const a = document.createElement('a'); a.href = url; a.download = DATA_FILE;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    if (navigator.clipboard) navigator.clipboard.writeText(txt).catch(() => {});
+    showToast(t.exported, 7000);
+  };
+  const onImportFile = (e) => {
+    const f = e.target.files && e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const j = JSON.parse(r.result);
+        if (!j || j.type !== 'FeatureCollection' || !Array.isArray(j.features)) throw new Error('bad');
+        if (!confirm(t.importConfirm)) return;
+        commit(fromGeoJSON(j)); setSelectedId(null); setView('home'); showToast(t.imported);
+      } catch (err) { showToast(t.importBad); }
+    };
+    r.readAsText(f);
+  };
+  const resetDraft = () => {
+    if (!confirm(t.resetConfirm)) return;
+    lsDel(LS_ZONES); setZones(published); setUsingDraft(false); setSelectedId(null); setView('home');
+  };
+
+  // ---- sheet contents ----
+  let head = t.loading, action = null, body = null;
+  if (zones) {
+    const closeBtn = <button className="btn ghost small" onClick={(e) => { e.stopPropagation(); closeZone(); }}>{t.close}</button>;
+    if (view === 'zone' && sel) {
+      head = sel.name || `(${t.unnamed})`; action = closeBtn;
+      body = mode === 'edit'
+        ? <ZoneEdit z={sel} t={t} groups={groups} selVertex={selVertex}
+            onChange={(patch) => commitZone(sel.id, patch)} onDelete={deleteZone}
+            onRedraw={redrawZone} onRemoveVertex={removeVertex} onDone={closeZone} />
+        : <ZoneInfo z={sel} t={t} lang={lang} />;
+    } else if (view === 'list') {
+      head = `${t.allZones} (${zones.length})`; action = closeBtn;
+      body = <ZoneList zones={zones} t={t} mode={mode} selectedId={selectedId} onSelect={selectZone} onDraw={startDrawing} />;
+    } else if (mode === 'edit') {
+      head = t.editing;
+      action = <button className="btn small" onClick={(e) => { e.stopPropagation(); startDrawing(null); }}>{t.newZone}</button>;
+      body = <Editor t={t} zones={zones} usingDraft={usingDraft} dataSrc={dataSrc} selectedId={selectedId}
+        onNew={() => startDrawing(null)} onExport={exportGeo} onImportClick={() => fileRef.current && fileRef.current.click()}
+        onReset={resetDraft} onSelect={selectZone} onDraw={startDrawing} />;
+    } else {
+      head = t.about;
+      action = <button className="btn ghost small" onClick={(e) => { e.stopPropagation(); setView('list'); setCollapsed(false); }}>{t.allZones}</button>;
+      body = <Home t={t} zones={zones} dark={dark} setDark={setDark} onList={() => setView('list')} />;
+    }
+  }
+
+  return (
+    <div className="app">
+      <header className="top">
+        <div className="grow">
+          <h1>{t.title}</h1>
+          <p className="sub">{t.subtitle}</p>
+        </div>
+        {EDIT && <button className={'btn small' + (mode === 'edit' ? '' : ' ghost')} aria-pressed={mode === 'edit'} onClick={toggleMode}>{mode === 'edit' ? t.stopEdit : t.edit}</button>}
+        <div className="seg" role="group" aria-label="Språk / Language">
+          <button className={lang === 'sv' ? 'on' : ''} onClick={() => setLangP('sv')}>SV</button>
+          <button className={lang === 'en' ? 'on' : ''} onClick={() => setLangP('en')}>EN</button>
+        </div>
+      </header>
+      <div className="stage">
+        <div className="mapwrap">
+          <div id="map" ref={mapEl} />
+          {toast && <div className="toast" role="status">{toast}</div>}
+        </div>
+        <aside className={'sheet' + (collapsed && !drawing ? ' collapsed' : '')} aria-label="Info">
+          {drawing
+            ? <DrawBar t={t} n={drawing.pts.length} name={sel ? sel.name : ''} onUndo={undoPoint} onCancel={cancelDrawing} onSave={finishDrawing} />
+            : <React.Fragment>
+                <div className="sheet-head" onClick={() => { if (isMobile()) setCollapsed((c) => !c); }}>
+                  <span className="handle" />
+                  <h2>{head}</h2>
+                  {action}
+                </div>
+                <div className="sheet-body">{body}</div>
+              </React.Fragment>}
+        </aside>
+      </div>
+      <input ref={fileRef} type="file" accept=".geojson,.json,application/geo+json,application/json" hidden onChange={onImportFile} />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
