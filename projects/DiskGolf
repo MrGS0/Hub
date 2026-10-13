@@ -1,0 +1,4394 @@
+<!doctype html>
+<!--
+  Kedjeklang 1.0.0 – diskgolfapp i en enda fil.
+  Scorekort, banor från OpenStreetMap, GPS-avstånd och statistik.
+  Genererad från källkoden med tools/build-single.mjs. Licens: MIT.
+  Kartdata © OpenStreetMap-bidragsgivare (ODbL). Karta: Leaflet (BSD-2). Typsnitt: Barlow (OFL).
+-->
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kedjeklang – diskgolf</title>
+<meta name="description" content="Scorekort, banor, GPS-avstånd och statistik för diskgolf.">
+<meta name="theme-color" content="#1c3a2b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kedjeklang">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20512%20512%22%3E%20%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22112%22%20fill%3D%22%231c3a2b%22%2F%3E%20%3Crect%20x%3D%22146%22%20y%3D%22104%22%20width%3D%22220%22%20height%3D%2234%22%20rx%3D%2217%22%20fill%3D%22%23f5b700%22%2F%3E%20%3Cg%20stroke%3D%22%23cfdcd3%22%20stroke-width%3D%2212%22%20stroke-linecap%3D%22round%22%20fill%3D%22none%22%3E%20%3Cpath%20d%3D%22M170%20140%20Q%20204%20228%20238%20292%22%2F%3E%20%3Cpath%20d%3D%22M213%20140%20Q%20232%20228%20247%20292%22%2F%3E%20%3Cpath%20d%3D%22M256%20140%20L%20256%20292%22%2F%3E%20%3Cpath%20d%3D%22M299%20140%20Q%20280%20228%20265%20292%22%2F%3E%20%3Cpath%20d%3D%22M342%20140%20Q%20308%20228%20274%20292%22%2F%3E%20%3C%2Fg%3E%20%3Cpath%20d%3D%22M146%20298%20H366%20L340%20362%20H172%20Z%22%20fill%3D%22%23f5b700%22%2F%3E%20%3Crect%20x%3D%22244%22%20y%3D%22362%22%20width%3D%2224%22%20height%3D%2260%22%20fill%3D%22%23cfdcd3%22%2F%3E%20%3Crect%20x%3D%22206%22%20y%3D%22414%22%20width%3D%22100%22%20height%3D%2218%22%20rx%3D%229%22%20fill%3D%22%23cfdcd3%22%2F%3E%20%3C%2Fsvg%3E">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAAMVElEQVR4nOyde0xU2R3HDzMgMDxUEJGHLx7zQLKG1VoXVkFUdF3RuLt1222zTTZN2qavNG3SpE3a9K/+0bRN2qZNm3SbbP/Y3e6uq/JQEBDw7a6u+IIZHspLRBQREBhmRnqGM/fuODM/F6zZzD33+/mD/ObeO3euzmfO+Z3fPffeyMzCNQyAUEQyAAggByCBHIAEcgASyAFIIAcggRyABHIAEsgBSCAHIIEcgARyABLIAUggByCBHIAEcgASyAFIIAcggRyABHIAEsgBSCAHIIEcgARyABLIAUggByCBHIAEcgASyAFIIAcggRyABHIAEsgBSCAHIIEcgARyABLIAUggByCBHIAEcgASyAFIIAcggRyABHIAEsgBSCAHIIEcgARyABLIAUggByDRvBzFuWO5Kc7YqEcsnJh0GdqHopvaE5iW0bAcWUucf9jXl7dsioUr12/H/OzjzK670UybGJg2MUTM/DG8zeDww+P68kNl2kSrcpRZR23hbYaA+8EPlWkTrcqRn6YBMwQaOtQAMFoBJFqV4+pADNMIGjrUALTardS0JjY44lnY09gezw+VaRNj4vKlTJNE1NkTeXljbcZkRARzR6bdSfmVJzIpxnmd2DzyXvJ3x+N3xE2cYizE8MFjSBhO/vGEqTB66ophZjrULgz8I6ZibKbJSyH3wBlZ+I2RRd+MmbpqmHk4M8PeOZ/066p09yOt/gI1nHM43YbfHUt7++ySUvPY3jf/GZe4ajRx98cnu8fv3wje2LLxRyuT9vGg4XzL3d5zwRtkWsvzsr/Ng5PXh/vaKoI3SFlRWJD7Og8uDKQ6zv09eIP4xasLX/klD/rdtor/fL/BkTA4FsW0jOYTUv4FvHshaX25x7zY+3I4cf8/Dv47eLOf5y1dORt0e4rebgphz3cyzHmzgWPU/K+mEK3pW2+8UDAbdD1I/UuoDb735n4R9N/z8ENi2kerLV4Ax0+fEMGWwk2RkSGMb+/qFIElO5c9FdYc3xs7boRwi3/otk0lIm46e4pJgSRyNJxocrlcPIgzmUoKi4I3aOtsF0FuVnYET1LmidFozFmVJWK7sit/uJTR0d4yOT+M+hPNTAokkWNicrL53GkR7yjeGrxBx40ul9vNg6jIyOyVq9g84W+Jmm2Q3B53580QLcfOLb4PbTpzanJqkkmBJHJwao43iMCaa16ZuTxgrcfjudHTLWJz1rx7FnN2jgg6urr4rgLWrsjIVDc4eryOyYI8crS22/sHBkS8Y0uIxsPe4esOLLk5bJ6omUrIPuXlbWUi6O7rtXd2MFmQRw5OZX2NCEqLNgenpY4uRY6sp5DD95bg737BggVbXywW8ZF6eZoNJpkc/mnp5o2Baam9w/e9ZqSlm2JNbM4kJCSkpS4TcVtHYMtRvLFITUUbTkmSigqkksM/Ld1ZGtizDNwZHBkdEbEtZx5ph1XpU0bHxobu3Q1Yu7N0mwiOnz4pTSoqkEoO5peW2nLM6cuWBax1dPqqHeacefQsFmXja462gFXeVDQr2/fRjfVMLmSTwz8t3btjV8Daz+WYTynsCdno3h0viYCnog6JUlGBbHIwv7SU54mxMbH+q9o6HSLg7QqbG7xiZjNbRGx/POGIj4vbUrRZxFX1tUw6JJSjvrnJ6XTygOeJZSVb/Fe1ORyPHnnnqfOMNTMtfS57W5mRGR21gAf8jQFtAx8wR0V5T63xXKf+RBOTDgnl4Flh3YlGEfOexb9Y7nRN9/T3itiaO6eexaKkrl09N6dnh0ICvtvd23aIuK75+PT0NJMOCeXgHDxaNTPjnXKRkrxkQ8Hz/qvUQoV1bj2LullAn/LC+g1LkpJ5wD/ocO1RJiNyynH7zp2LVy6LuLzsJf9VbR2+tMMyt9GsLdesvPExOcrLdorgk0sXB4fuMBmRUw5ORW21CNbm5S9Pz1CXt7X7vuNVmStMj6erwcTGxmQoqYl/y8HzlXyLTcSHa48wSZFWjguXWwYGB0W8d+fnY9q+gVsPJyZE/IXVjjWKAbz8xWto6vJXX94jgt5b/S3XrjJJkVYOzuGaKhHwUy3+Y9pWpWdRuwwKdYJPa7tDXchHsMUvFCkfUc3kRWY5apsbJya9jQQfcO7aul1d7lBqWZbsL5RDyUb9yl+7tpapI9g6GUewKjLLwYeXx5qOi7h8+06DwfePVVNL6xNzUj5YtQZlo5FG4x4lwz1SX+uenUAkKzLLwbxj2moxpk1OSiop3CQW2pWclJfC/HPVAFYuX6GWv+xKT1T6YvHCxESxsOJYDZMayeW4O3zvzKfnRfy18r0imJia5KdCRGzLtVDvVTOSm709avlr/559Ijh5/uy9+8NMaiSXg/Nh5SER8PHnhoJ1IrbPodqhnn9RSyOF6zekpqSI+P1DB5jsyC9H+42uq62+y+Be2VUugrkMWCyKHOpQ5TWl7fnsyuWe/j4mO/LLwfmwytd4rLFYc1d7rzBQv2+ec4QshSXEx6enpopYtBz5Vlvu6mxlh4eZDtCFHLwgpk4937/nFf63f2BALYXZLCHSjjzlND0vf/FiPPMrfPF85fJ1aQtf/uhCDs6Bat9v/avPr8tYlsaD68q0rpA9i5pwiNlfKzIy168VV0Oy9w5+xPSBXuRoOnP63rB3cMGrF6/u9qYOas9iywnRcliVUUzb7Gav7fZlG4NDQ6c+Ocf0gV7k4NUONfMoLdqUtHixWtey5OQEXCBpNBrVeaM84UhatHjzxkLxku9EFE70gF7k4NQ2Now/HGez3/2ru8odHe1iVlj0guisFav8t8xetTrS6Lv40d7Z8freffwt/OWD0dE6peSqB3QkBy9kHaiuFPFLW8tMJlNXz03x0mZ+LO3IU/qUjq6uxPiE7cWl4uWB6gp30LWQEqMjOZh3kseR8YcP2ezl1K/t3tPqsIvleWar/2bqjGJeDuHNhriEmg9bKo7JOeOLQl9yTDmdHyklCt54dPf6iuh5jw9Y1Ik8Pb29ZSW+i6M+qDjo8ptDqgf0JQen8tjR0THvXWO992LI8t1yIzkpWb1AMs4Ul5jgu2d5nsWiNhtSXnzwZHQnB288DhzxZR7bNpXcGRoSMR+/iCA5yRfcGhwoUS5L+W/Fx3prNpgO5eBU1BxRG48pl1Ms5ONVJfDdzsvt9qjNRnX9MaY/tHuryafHMzuCLch/jv+NN8UbDN4ih9FgEBfL81Fr9ALvNI74uDgxP+idD99XU1ddoceWg1NZV8uLFjwwGH3/A4kJvlvJ8lNuIhC1jeGREbknij4BncoxPe0btkR4G5IQpQu1nvFB5UGmV3QqB6eqrqZ/4NaUc4qfdnG53S3Xrt4fGRl+MHLp6hWXy9189pTTNc03qJT0ara5EJFZuIZpkK+vG/7trgGmBX5TnfaeNu9Zq9WW49DlRRPT876d6JcPP0h+qEybaFWOSZehpnUhC3sOX1nED5VpEw3nHO9eWMzCnncvauAgKTQsR0u/qe12WD/nhh9e2+1Yplm0PVoJ89+lppsNpnU5wjkt1XQqKtC2HDzX4xkfC0s0nYoKNF8EC9umW+t9CpNADp7xtfSFXdLHD0nTqahAhvJ5GP5GJWg2mBxyHL2+MKzS0vsTRn5ITPvIIEe4paWHryzUeioqkOSsbPg04zMz7IPPZOhTmDRyhE9a+km3qX1Iq88nD0Ce+Rxh0ni8d1GGJ8oKNP/QYRWeA5bnP4g0zP9CVmNM1JLCgGWuu6eZZ4rNE/ejiKprMqSiAq1O9nmGpCQveftPfw1Y+NZPfxj8UCa9IU/LAZ45kAOQQA5AAjkACeQAJJADkEAOQAI5AAnkACSQA5BADkACOQCJXuRIW5q6vXiLOTvHGBE4S0E8sC2AX/zgJ8E3AfPMPLJ3tNc1N/o/KVJi9CLHW298a+PzX5n79tRDetbm5S9bmvr7v/2Z6QBd3LwlNjZm3XMF7Bmxfm0B3yHTAbqQY3JySn3S2//Ppy2f8R0yHaCXuwl29/UkxCdkpKUbDU//e5iedjWeOfn+oQNj4+NMB2AmGCDBUBaQQA5AAjkACeQAJJADkEAOQAI5AAnkACSQA5BADkACOQAJ5AAkkAOQQA5AAjkACeQAJJADkEAOQAI5AAnkACSQA5BADkACOQAJ5AAkkAOQQA5AAjkACeQAJJADkEAOQAI5AAnkACSQA5BADkACOQAJ5AAkkAOQQA5AAjkACeQAJJADkEAOQPI/AAAA///JGMy9AAAABklEQVQDAPlX+fvL7nsWAAAAAElFTkSuQmCC">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+/* Kedjeklang – stilmall
+   Idé: appen används ute i skogen, ofta i solljus och med en hand.
+   Stora tryckytor, hög kontrast, siffror i smal och tydlig skylt-typografi.
+   Det enda "högljudda" elementet är hålskylten överst i rundvyn. */
+
+
+:root {
+  color-scheme: light;
+  --bg: #edf1ed;
+  --surface: #ffffff;
+  --surface-2: #f5f7f4;
+  --ink: #142019;
+  --ink-2: #48574e;
+  --ink-3: #6f7d75;
+  --line: #d2dbd4;
+  --pine: #1c3a2b;
+  --pine-2: #2a5340;
+  --pine-ink: #eaf2ed;
+  --pine-ink-2: #a9c2b3;
+  --band: #f5b700;
+  --band-ink: #231b00;
+  --danger: #b3261e;
+  --ok: #1f7a45;
+  --focus: #1e66d0;
+  --series-1: #2a78d6;
+
+  /* Resultatfärger: blå = under par, grå = par, röd = över par */
+  --sc-eagle-bg: #1c5cab; --sc-eagle-ink: #ffffff;
+  --sc-birdie-bg: #b7d3f6; --sc-birdie-ink: #0d366b;
+  --sc-par-bg: transparent; --sc-par-ink: var(--ink);
+  --sc-bogey-bg: #f6cbc5; --sc-bogey-ink: #6b1915;
+  --sc-double-bg: #c0393a; --sc-double-ink: #ffffff;
+  --bar-eagle: #1c5cab; --bar-birdie: #5598e7; --bar-par: #a3a5a0; --bar-bogey: #e66767; --bar-double: #b52f2f;
+
+  --font: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --r-s: 8px;
+  --r-m: 14px;
+  --tabbar-h: 62px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #0e1511;
+    --surface: #16201a;
+    --surface-2: #1c2821;
+    --ink: #e5ece7;
+    --ink-2: #b2c0b7;
+    --ink-3: #8a998f;
+    --line: #2b3a31;
+    --pine: #1f4231;
+    --pine-2: #2c5a43;
+    --danger: #f0776e;
+    --ok: #5cc48a;
+    --focus: #7fb2ff;
+    --series-1: #3987e5;
+    --sc-eagle-bg: #6da7ec; --sc-eagle-ink: #0d2240;
+    --sc-birdie-bg: #1f4f8c; --sc-birdie-ink: #e3eefc;
+    --sc-bogey-bg: #6e2523; --sc-bogey-ink: #fbe3e0;
+    --sc-double-bg: #e66767; --sc-double-ink: #2a0606;
+    --bar-eagle: #6da7ec; --bar-birdie: #3a7fd0; --bar-par: #6b6d68; --bar-bogey: #c45252; --bar-double: #f08a8a;
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 16px/1.45 var(--font);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: contain;
+}
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.1; margin: 0; letter-spacing: 0.005em; }
+h1 { font-size: 1.75rem; }
+h2 { font-size: 1.3rem; }
+h3 { font-size: 1.1rem; }
+p { margin: 0 0 0.75em; }
+a { color: inherit; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+.icon { display: inline-flex; width: 1.4em; height: 1.4em; flex: none; }
+.icon svg { width: 100%; height: 100%; }
+
+/* ---------- Skal ---------- */
+
+#app {
+  max-width: 640px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding-bottom: calc(var(--tabbar-h) + var(--safe-b) + 24px);
+}
+body[data-view="play"] #app { padding-bottom: calc(var(--safe-b) + 24px); }
+body.has-strip #app { padding-bottom: calc(var(--tabbar-h) + var(--safe-b) + 76px); }
+
+.tabbar {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  padding-bottom: var(--safe-b);
+}
+.tabbar-inner { display: flex; width: 100%; max-width: 640px; }
+.tabbar a {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 9px 0 8px;
+  min-height: var(--tabbar-h);
+  text-decoration: none;
+  color: var(--ink-3);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.tabbar a[aria-current="page"] { color: var(--ink); }
+.tabbar a[aria-current="page"] .icon { color: var(--pine-2); }
+@media (prefers-color-scheme: dark) { .tabbar a[aria-current="page"] .icon { color: var(--band); } }
+body[data-view="play"] .tabbar, body[data-view="play"] .active-strip { display: none; }
+
+.active-strip {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: calc(var(--tabbar-h) + var(--safe-b));
+  z-index: 19;
+  display: flex;
+  justify-content: center;
+  padding: 0 12px 8px;
+  pointer-events: none;
+}
+.active-strip a {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 616px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--r-m);
+  background: var(--pine);
+  color: var(--pine-ink);
+  text-decoration: none;
+  box-shadow: 0 6px 18px rgba(10, 30, 20, 0.25);
+}
+.active-strip .strip-hole { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; color: var(--band); line-height: 1; }
+.active-strip .strip-text { flex: 1; min-width: 0; }
+.active-strip .strip-text strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.active-strip .strip-text span { font-size: 0.85rem; color: var(--pine-ink-2); }
+
+.page-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 8px 16px;
+  background: var(--bg);
+}
+.page-header h1 { flex: 1; font-size: 1.6rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page-header .icon-btn:first-child { margin-left: -10px; }
+.header-actions { display: flex; gap: 4px; }
+
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2.1rem;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.wordmark .logo { display: inline-flex; width: 34px; height: 34px; }
+.wordmark .logo svg { width: 100%; height: 100%; }
+
+.content { padding: 0 16px; }
+.section { margin: 22px 0 0; }
+.section > h2 { margin: 0 0 10px; }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.section-head h2 { margin: 0; }
+.muted { color: var(--ink-2); }
+.small { font-size: 0.875rem; }
+.note { color: var(--ink-2); font-size: 0.9rem; }
+.warn {
+  background: color-mix(in srgb, var(--band) 18%, var(--surface));
+  border-left: 4px solid var(--band);
+  padding: 10px 12px;
+  border-radius: var(--r-s);
+  font-size: 0.92rem;
+  margin: 8px 0;
+}
+.error-box { border-left-color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, var(--surface)); }
+
+/* ---------- Knappar ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: var(--r-m);
+  border: 1.5px solid transparent;
+  background: var(--surface);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.btn.primary { background: var(--band); color: var(--band-ink); }
+.btn.dark { background: var(--pine); color: var(--pine-ink); }
+.btn.outline { border-color: var(--line); background: var(--surface); }
+.btn.ghost { background: transparent; }
+.btn.danger { background: transparent; border-color: color-mix(in srgb, var(--danger) 45%, transparent); color: var(--danger); }
+.btn.block { display: flex; width: 100%; }
+.btn.big { min-height: 58px; font-size: 1.1rem; }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn-row > .btn { flex: 1; }
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: none;
+}
+.icon-btn:active { background: color-mix(in srgb, var(--ink) 8%, transparent); }
+.link-btn { background: none; border: 0; padding: 4px 0; color: var(--pine-2); font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+@media (prefers-color-scheme: dark) { .link-btn { color: var(--band); } }
+
+/* ---------- Listor ---------- */
+
+.list {
+  background: var(--surface);
+  border-radius: var(--r-m);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.list > * + * { border-top: 1px solid var(--line); }
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  min-height: 60px;
+  text-decoration: none;
+  color: inherit;
+  background: none;
+  border: 0;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+.row:active { background: var(--surface-2); }
+.row-main { flex: 1; min-width: 0; }
+.row-title { font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-sub { color: var(--ink-2); font-size: 0.875rem; display: block; }
+.row-end { text-align: right; flex: none; }
+.row-big { font-family: var(--font-display); font-weight: 700; font-size: 1.5rem; line-height: 1; }
+.row .chev { color: var(--ink-3); }
+.tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  vertical-align: 1px;
+}
+.tag.live { background: var(--band); border-color: var(--band); color: var(--band-ink); }
+
+.empty {
+  text-align: center;
+  padding: 28px 18px;
+  color: var(--ink-2);
+  border: 1.5px dashed var(--line);
+  border-radius: var(--r-m);
+}
+.empty .btn { margin-top: 6px; }
+
+/* ---------- Formulär ---------- */
+
+.field { display: grid; gap: 6px; margin: 0 0 14px; }
+.field > span { font-weight: 600; font-size: 0.92rem; }
+input[type="text"], input[type="number"], input[type="search"], select {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border-radius: var(--r-s);
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+}
+input:focus, select:focus { border-color: var(--focus); outline: none; }
+.inline-form { display: flex; gap: 8px; }
+.inline-form input { flex: 1; }
+
+.switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9rem; }
+.switch input { appearance: none; width: 44px; height: 26px; border-radius: 999px; background: var(--line); position: relative; margin: 0; cursor: pointer; flex: none; transition: background 0.15s; }
+.switch input::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.25); }
+.switch input:checked { background: var(--pine-2); }
+.switch input:checked::after { transform: translateX(18px); }
+@media (prefers-color-scheme: dark) { .switch input:checked { background: var(--ok); } }
+
+.choice-list .row { cursor: pointer; }
+.check {
+  width: 26px; height: 26px; flex: none;
+  border-radius: 8px;
+  border: 2px solid var(--line);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--band-ink);
+}
+.row[aria-pressed="true"] .check, .row[aria-checked="true"] .check { background: var(--band); border-color: var(--band); }
+
+.segmented { display: flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 3px; gap: 3px; overflow-x: auto; scrollbar-width: none; }
+.segmented button {
+  flex: 1 0 auto;
+  border: 0; background: none; padding: 8px 14px; border-radius: 999px; font-weight: 600; cursor: pointer; color: var(--ink-2); white-space: nowrap;
+}
+.segmented button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+
+/* ---------- Hem ---------- */
+
+.home-top { padding: 18px 16px 4px; }
+.resume {
+  display: block;
+  background: var(--pine);
+  color: var(--pine-ink);
+  border-radius: var(--r-m);
+  padding: 16px;
+  text-decoration: none;
+}
+.resume-top { display: flex; align-items: flex-end; gap: 14px; }
+.resume-hole { font-family: var(--font-display); font-weight: 700; font-size: 3.4rem; line-height: 0.85; color: var(--band); }
+.resume-hole small { display: block; font-size: 0.95rem; font-weight: 600; color: var(--pine-ink-2); margin-bottom: 4px; }
+.resume h2 { color: var(--pine-ink); }
+.resume p { color: var(--pine-ink-2); margin: 4px 0 0; font-size: 0.9rem; }
+.resume .btn { margin-top: 14px; }
+
+.welcome { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); padding: 16px; }
+.welcome h2 { margin-bottom: 6px; }
+
+/* ---------- Rundvy: hålskylten ---------- */
+
+.play-top {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px 6px 8px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
+}
+.play-top .title { flex: 1; min-width: 0; text-align: center; font-weight: 600; font-size: 0.95rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+.tee-sign {
+  margin: 0 12px;
+  background: var(--pine);
+  color: var(--pine-ink);
+  border-radius: 18px;
+  padding: 14px 16px 12px;
+  position: relative;
+  overflow: hidden;
+}
+/* Korgbandet: en gul rand längs skyltens överkant, som på en riktig korg */
+.tee-sign::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 6px; background: var(--band); }
+.sign-main { display: grid; grid-template-columns: auto 1fr auto; align-items: end; gap: 12px; }
+.sign-hole-label { font-size: 0.85rem; color: var(--pine-ink-2); font-weight: 600; }
+.sign-hole {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 6.2rem;
+  line-height: 0.78;
+  color: var(--band);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  margin-top: 6px;
+}
+.sign-facts { justify-self: end; text-align: right; display: grid; gap: 2px; }
+.sign-facts b { font-family: var(--font-display); font-size: 2rem; font-weight: 700; line-height: 1; }
+.sign-facts span { font-size: 0.8rem; color: var(--pine-ink-2); font-weight: 500; }
+.sign-of { align-self: start; padding-top: 22px; color: var(--pine-ink-2); font-size: 0.85rem; }
+
+.rangefinder {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+}
+.rf-value { font-family: var(--font-display); font-weight: 600; font-size: 2.1rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.rf-label { font-size: 0.8rem; color: var(--pine-ink-2); }
+.rf-main { flex: 1; min-width: 0; }
+.rf-btn {
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  color: var(--pine-ink);
+  border-radius: 999px;
+  min-height: 40px;
+  padding: 0 14px;
+  font-weight: 600;
+  display: inline-flex; align-items: center; gap: 6px;
+  cursor: pointer;
+}
+.rf-btn.on { background: var(--band); color: var(--band-ink); border-color: var(--band); }
+
+.hole-strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 12px 12px 4px;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+.hole-strip::-webkit-scrollbar { display: none; }
+.hole-chip {
+  flex: none;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 6px;
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.15rem;
+  cursor: pointer;
+  scroll-snap-align: center;
+  color: var(--ink-2);
+}
+.hole-chip.done { background: var(--surface-2); color: var(--ink); border-color: transparent; }
+.hole-chip.current { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+/* ---------- Spelare och resultat ---------- */
+
+.players { margin: 10px 12px 0; }
+.player {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  padding: 10px 10px 10px 14px;
+  margin-bottom: 8px;
+}
+.player-head { display: flex; align-items: center; gap: 10px; min-height: 64px; }
+.player-name { flex: 1; min-width: 0; }
+.player-name strong { display: block; font-size: 1.05rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.player-name span { color: var(--ink-2); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+
+.stepper { display: flex; align-items: center; gap: 4px; }
+.step-btn {
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  border: 1.5px solid var(--line);
+  background: var(--surface-2);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.step-btn:active { background: var(--line); }
+.score-num {
+  width: 58px; height: 58px;
+  border-radius: 14px;
+  border: 0;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  background: var(--surface-2);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.score-num small { font-family: var(--font); font-size: 0.6rem; font-weight: 600; margin-top: 2px; }
+
+.sc-ace, .sc-eagle { background: var(--sc-eagle-bg); color: var(--sc-eagle-ink); }
+.sc-birdie { background: var(--sc-birdie-bg); color: var(--sc-birdie-ink); }
+.sc-par { background: var(--surface-2); color: var(--ink); }
+.sc-bogey { background: var(--sc-bogey-bg); color: var(--sc-bogey-ink); }
+.sc-double { background: var(--sc-double-bg); color: var(--sc-double-ink); }
+
+/* Detaljerad inmatning */
+.throws { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; min-height: 30px; align-items: center; }
+.throw-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px 3px 4px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.throw-chip i { font-style: normal; display: inline-flex; width: 20px; height: 20px; border-radius: 50%; background: var(--ink); color: var(--bg); align-items: center; justify-content: center; font-size: 0.72rem; }
+.throw-chip.ob { border-color: var(--danger); color: var(--danger); }
+.throw-chip.basket { background: var(--band); border-color: var(--band); color: var(--band-ink); }
+.zone-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; }
+.zone-btn {
+  min-height: 52px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  font-weight: 600;
+  cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  line-height: 1.1;
+  padding: 4px;
+}
+.zone-btn small { font-weight: 400; font-size: 0.7rem; color: var(--ink-3); margin-top: 2px; }
+.zone-btn.ob { color: var(--danger); }
+.zone-btn.basket { grid-column: span 2; background: var(--band); border-color: var(--band); color: var(--band-ink); }
+.zone-btn.basket small { color: var(--band-ink); opacity: 0.75; }
+.zone-btn:active { filter: brightness(0.94); }
+.detail-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+.expand-btn { background: none; border: 0; padding: 6px 0; color: var(--ink-2); font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+.play-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 12px 0; }
+.hole-nav { display: flex; gap: 8px; margin: 12px 12px 0; }
+.hole-nav .btn { flex: 1; }
+.hole-nav .btn.next { flex: 2; }
+
+.panel { margin: 10px 12px 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); padding: 12px; }
+.panel h3 { margin-bottom: 8px; }
+.map { height: 260px; border-radius: var(--r-s); overflow: hidden; background: var(--surface-2); z-index: 0; }
+.map.tall { height: 340px; }
+.pos-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.pos-row .btn { flex: 1; min-height: 44px; font-size: 0.9rem; padding: 0 10px; }
+.throw-list { margin: 10px 0 0; padding: 0; list-style: none; }
+.throw-list li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+.throw-list li b { font-family: var(--font-display); font-size: 1.3rem; }
+
+/* Kartmarkörer */
+.mk { display: flex; align-items: center; justify-content: center; border-radius: 50%; font-family: var(--font-display); font-weight: 700; font-size: 13px; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.35); }
+.mk-tee { background: #1c3a2b; color: #fff; border-radius: 5px; }
+.mk-basket { background: #f5b700; color: #231b00; }
+.mk-me { background: #2a78d6; border: 3px solid #fff; }
+.mk-course { background: #1c3a2b; color: #f5b700; }
+
+/* ---------- Mätark (bottom sheet) ---------- */
+
+.sheet-backdrop { position: fixed; inset: 0; background: rgba(5, 15, 10, 0.45); z-index: 40; display: flex; align-items: flex-end; justify-content: center; }
+.sheet {
+  width: 100%;
+  max-width: 640px;
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  padding: 18px 18px calc(18px + var(--safe-b));
+  max-height: 90dvh;
+  overflow-y: auto;
+}
+.sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.measure-value { font-family: var(--font-display); font-weight: 700; font-size: 4.4rem; line-height: 1; margin: 10px 0 2px; font-variant-numeric: tabular-nums; }
+.measure-acc { color: var(--ink-2); font-size: 0.9rem; }
+.measure-steps { margin: 8px 0 14px; padding-left: 20px; color: var(--ink-2); }
+
+/* ---------- Scorekort ---------- */
+
+.scorecard-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); }
+table.scorecard { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.scorecard th, .scorecard td { padding: 7px 6px; text-align: center; border-bottom: 1px solid var(--line); }
+.scorecard thead th { font-size: 0.82rem; font-weight: 600; color: var(--ink-2); position: sticky; top: 0; background: var(--surface); max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scorecard tbody th { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; width: 44px; }
+.scorecard td.par { color: var(--ink-2); width: 40px; }
+.scorecard .cell { display: inline-flex; min-width: 34px; height: 34px; align-items: center; justify-content: center; border-radius: 9px; font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; }
+.scorecard tfoot td, .scorecard tfoot th { font-weight: 700; border-bottom: 0; font-family: var(--font-display); font-size: 1.2rem; }
+.scorecard tfoot .diff { display: block; font-size: 0.85rem; color: var(--ink-2); font-family: var(--font); font-weight: 600; }
+
+.leader { display: grid; gap: 8px; }
+.leader-row { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); padding: 12px 14px; }
+.leader-pos { font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; width: 22px; color: var(--ink-3); }
+.leader-row .row-main strong { font-size: 1.05rem; }
+.leader-score { text-align: right; }
+.leader-score b { font-family: var(--font-display); font-size: 2rem; line-height: 1; display: block; }
+.leader-score span { color: var(--ink-2); font-size: 0.85rem; }
+
+/* ---------- Statistik ---------- */
+
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tiles.two { grid-template-columns: repeat(2, 1fr); }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); padding: 12px; min-width: 0; }
+.tile b { display: block; font-family: var(--font-display); font-weight: 700; font-size: 2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.tile span { display: block; font-size: 0.82rem; color: var(--ink-2); margin-top: 4px; }
+.tile em { display: block; font-style: normal; font-size: 0.75rem; color: var(--ink-3); margin-top: 2px; }
+
+.chart-box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m); padding: 12px; position: relative; }
+.chart-box svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart-box .axis text { fill: var(--ink-3); font-size: 11px; font-family: var(--font); }
+.chart-box .grid line { stroke: var(--line); stroke-width: 1; }
+.chart-box .zero { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart-tip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--ink);
+  color: var(--bg);
+  padding: 6px 9px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  transform: translate(-50%, calc(-100% - 10px));
+  z-index: 2;
+}
+details.table-view { margin-top: 8px; font-size: 0.9rem; }
+details.table-view summary { cursor: pointer; color: var(--ink-2); font-weight: 600; padding: 4px 0; }
+details.table-view table { width: 100%; border-collapse: collapse; margin-top: 6px; font-variant-numeric: tabular-nums; }
+details.table-view td, details.table-view th { padding: 5px 4px; border-bottom: 1px solid var(--line); text-align: left; }
+details.table-view td:last-child, details.table-view th:last-child { text-align: right; }
+
+.bars { display: grid; gap: 8px; }
+.bar-row { display: grid; grid-template-columns: 112px 1fr 72px; align-items: center; gap: 10px; font-size: 0.9rem; }
+.bar-row .bar-track { height: 14px; border-radius: 0 4px 4px 0; position: relative; }
+.bar-row .bar-fill { height: 100%; border-radius: 0 4px 4px 0; min-width: 2px; }
+.bar-row .bar-val { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.bar-row .bar-label { display: flex; align-items: center; gap: 6px; }
+.swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+
+.hole-bars { display: grid; gap: 4px; }
+.hole-bar { display: grid; grid-template-columns: 34px 1fr 1fr 52px; align-items: center; gap: 0; font-size: 0.85rem; min-height: 26px; }
+.hole-bar .lbl { font-family: var(--font-display); font-weight: 600; font-size: 1rem; }
+.hole-bar .neg { display: flex; justify-content: flex-end; border-right: 1px solid var(--ink-3); height: 14px; }
+.hole-bar .pos { display: flex; justify-content: flex-start; height: 14px; }
+.hole-bar .neg div { background: var(--bar-birdie); border-radius: 4px 0 0 4px; height: 100%; }
+.hole-bar .pos div { background: var(--bar-bogey); border-radius: 0 4px 4px 0; height: 100%; }
+.hole-bar .val { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+
+/* ---------- Banredigering ---------- */
+
+.hole-table { width: 100%; border-collapse: collapse; }
+.hole-table th { text-align: left; font-size: 0.8rem; color: var(--ink-2); font-weight: 600; padding: 4px 4px 6px; }
+.hole-table td { padding: 4px; border-top: 1px solid var(--line); vertical-align: middle; }
+.hole-table input { min-height: 42px; padding: 6px 8px; }
+.hole-table td.lbl input { width: 54px; font-family: var(--font-display); font-weight: 600; font-size: 1.1rem; text-align: center; }
+.hole-table td.par select { width: 64px; min-height: 42px; padding: 6px; }
+.hole-table td.len input { width: 76px; }
+.hole-table td.gps { font-size: 0.75rem; color: var(--ink-3); white-space: nowrap; }
+.hole-table td.gps .ok { color: var(--ok); font-weight: 600; }
+.sticky-save { position: sticky; bottom: calc(var(--tabbar-h) + var(--safe-b) + 8px); margin-top: 16px; z-index: 5; }
+
+/* ---------- Dialoger och meddelanden ---------- */
+
+dialog.dialog {
+  border: 0;
+  border-radius: 18px;
+  padding: 20px;
+  width: min(92vw, 420px);
+  background: var(--surface);
+  color: var(--ink);
+}
+dialog.dialog::backdrop { background: rgba(5, 15, 10, 0.5); }
+dialog.dialog h2 { margin-bottom: 10px; }
+.dialog-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+
+#toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--tabbar-h) + var(--safe-b) + 16px);
+  transform: translate(-50%, 20px);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 60;
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  max-width: min(92vw, 520px);
+  transition: opacity 0.18s, transform 0.18s;
+  font-size: 0.95rem;
+}
+#toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.toast-action { background: none; border: 0; color: var(--band); font-weight: 700; cursor: pointer; padding: 4px; }
+
+.spinner { display: inline-block; width: 20px; height: 20px; border: 2.5px solid var(--line); border-top-color: var(--pine-2); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -4px; }
+@media (prefers-color-scheme: dark) { .spinner { border-top-color: var(--band); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading { display: flex; align-items: center; gap: 10px; padding: 18px 4px; color: var(--ink-2); }
+
+.leaflet-container { font-family: var(--font); }
+.leaflet-control-attribution { font-size: 10px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+@media (min-width: 700px) {
+  .tee-sign, .players, .play-tools, .hole-nav, .panel { margin-left: 16px; margin-right: 16px; }
+}
+
+body.has-strip .sticky-save { bottom: calc(var(--tabbar-h) + var(--safe-b) + 78px); }
+
+</style>
+</head>
+<body>
+<main id="app"></main>
+<noscript>Kedjeklang behöver JavaScript för att fungera.</noscript>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>window.KEDJEKLANG_SINGLE_FILE = true;</script>
+<script>
+(() => {
+  // js/scoring.js
+  var ZONES = {
+    fairway: { label: "Fairway", hint: "Fritt läge, över 20 m" },
+    rough: { label: "Utanför", hint: "Skymt läge, över 20 m" },
+    c2: { label: "C2", hint: "10–20 m kvar" },
+    c1: { label: "C1", hint: "3,3–10 m kvar" },
+    parked: { label: "Parkerad", hint: "Under 3,3 m" },
+    ob: { label: "OB", hint: "+1 straffslag" },
+    basket: { label: "I korgen", hint: "Hålet klart" }
+  };
+  var ZONE_ORDER = ["fairway", "rough", "c2", "c1", "parked", "ob", "basket"];
+  var FAIRWAY_HIT = /* @__PURE__ */ new Set(["fairway", "c2", "c1", "parked", "basket"]);
+  var IN_C2 = /* @__PURE__ */ new Set(["c2", "c1", "parked", "basket"]);
+  var IN_C1 = /* @__PURE__ */ new Set(["c1", "parked", "basket"]);
+  var IN_PARKED = /* @__PURE__ */ new Set(["parked", "basket"]);
+  function strokesFromThrows(throws) {
+    let s2 = 0;
+    for (const z of throws) s2 += z === "ob" ? 2 : 1;
+    return s2;
+  }
+  function throwsDone(throws) {
+    return Array.isArray(throws) && throws.length > 0 && throws[throws.length - 1] === "basket";
+  }
+  function entryStrokes(entry) {
+    if (!entry) return null;
+    if (Array.isArray(entry.t)) return throwsDone(entry.t) ? strokesFromThrows(entry.t) : null;
+    return typeof entry.s === "number" ? entry.s : null;
+  }
+  function entryFromThrows(throws) {
+    return { t: throws, s: throwsDone(throws) ? strokesFromThrows(throws) : null };
+  }
+  function scoreName(strokes, par) {
+    if (strokes == null) return "";
+    if (strokes === 1) return "Hole in one";
+    const d = strokes - par;
+    if (d <= -3) return "Albatross";
+    if (d === -2) return "Eagle";
+    if (d === -1) return "Birdie";
+    if (d === 0) return "Par";
+    if (d === 1) return "Bogey";
+    if (d === 2) return "Dubbelbogey";
+    return `+${d}`;
+  }
+  function scoreCategory(strokes, par) {
+    if (strokes == null) return null;
+    if (strokes === 1) return "ace";
+    const d = strokes - par;
+    if (d <= -2) return "eagle";
+    if (d === -1) return "birdie";
+    if (d === 0) return "par";
+    if (d === 1) return "bogey";
+    return "double";
+  }
+  function analyzeHole(entry, par) {
+    if (!entry || !throwsDone(entry.t)) return null;
+    const throws = entry.t;
+    const strokes = strokesFromThrows(throws);
+    const result = {
+      strokes,
+      par,
+      ob: throws.filter((z) => z === "ob").length,
+      fairwayChances: 0,
+      fairwayHits: 0,
+      regChance: par >= 3,
+      c2r: false,
+      c1r: false,
+      parked: false,
+      scrambleChance: false,
+      scramble: false,
+      c1Att: 0,
+      c1Made: 0,
+      c1xAtt: 0,
+      c1xMade: 0,
+      c2Att: 0,
+      c2Made: 0
+    };
+    if (par >= 3) {
+      const chances = par >= 5 ? 2 : 1;
+      for (let i = 0; i < chances && i < throws.length; i++) {
+        result.fairwayChances++;
+        if (FAIRWAY_HIT.has(throws[i])) result.fairwayHits++;
+        if (throws[i] === "basket") break;
+      }
+    }
+    if (result.regChance) {
+      const reg = par - 2;
+      let cum = 0;
+      for (const z of throws) {
+        cum += z === "ob" ? 2 : 1;
+        if (cum > reg) break;
+        if (IN_C2.has(z)) result.c2r = true;
+        if (IN_C1.has(z)) result.c1r = true;
+        if (IN_PARKED.has(z)) result.parked = true;
+      }
+      result.scrambleChance = !result.c2r;
+      result.scramble = !result.c2r && strokes <= par;
+    }
+    for (let i = 0; i < throws.length; i++) {
+      const prev = i === 0 ? "tee" : throws[i - 1];
+      const lie = prev === "ob" ? "rough" : prev;
+      const made = throws[i] === "basket";
+      if (lie === "parked" || lie === "c1") {
+        result.c1Att++;
+        if (made) result.c1Made++;
+        if (lie === "c1") {
+          result.c1xAtt++;
+          if (made) result.c1xMade++;
+        }
+      } else if (lie === "c2") {
+        result.c2Att++;
+        if (made) result.c2Made++;
+      }
+    }
+    return result;
+  }
+  function roundTotals(round, playerId) {
+    const entries = round.scores[playerId] || [];
+    let strokes = 0;
+    let par = 0;
+    let played = 0;
+    round.holes.forEach((hole, i) => {
+      const s2 = entryStrokes(entries[i]);
+      if (s2 != null) {
+        strokes += s2;
+        par += hole.par;
+        played++;
+      }
+    });
+    return {
+      strokes,
+      par,
+      diff: strokes - par,
+      played,
+      complete: played === round.holes.length
+    };
+  }
+
+  // js/geo.js
+  var EARTH_RADIUS = 63710088e-1;
+  var rad = (d) => d * Math.PI / 180;
+  var deg = (r) => r * 180 / Math.PI;
+  function distance(a, b) {
+    if (!a || !b) return null;
+    const dLat = rad(b.lat - a.lat);
+    const dLon = rad(b.lon - a.lon);
+    const s2 = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2;
+    return 2 * EARTH_RADIUS * Math.asin(Math.min(1, Math.sqrt(s2)));
+  }
+  function pathLength(points) {
+    let sum = 0;
+    for (let i = 1; i < points.length; i++) sum += distance(points[i - 1], points[i]);
+    return sum;
+  }
+  function pointInPolygon(p, polygon) {
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const a = polygon[i];
+      const b = polygon[j];
+      const crosses = a.lat > p.lat !== b.lat > p.lat && p.lon < (b.lon - a.lon) * (p.lat - a.lat) / (b.lat - a.lat) + a.lon;
+      if (crosses) inside = !inside;
+    }
+    return inside;
+  }
+  function project(p, ref) {
+    const x = rad(p.lon - ref.lon) * Math.cos(rad(ref.lat)) * EARTH_RADIUS;
+    const y = rad(p.lat - ref.lat) * EARTH_RADIUS;
+    return { x, y };
+  }
+  function distanceToSegment(p, a, b) {
+    const A = project(a, p);
+    const B = project(b, p);
+    const dx = B.x - A.x;
+    const dy = B.y - A.y;
+    const len2 = dx * dx + dy * dy;
+    let t = len2 === 0 ? 0 : -(A.x * dx + A.y * dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    const x = A.x + t * dx;
+    const y = A.y + t * dy;
+    return Math.hypot(x, y);
+  }
+  function distanceToPolyline(p, points) {
+    if (points.length === 1) return distance(p, points[0]);
+    let best = Infinity;
+    for (let i = 1; i < points.length; i++) {
+      best = Math.min(best, distanceToSegment(p, points[i - 1], points[i]));
+    }
+    return best;
+  }
+  function bboxOf(points) {
+    const b = { s: Infinity, w: Infinity, n: -Infinity, e: -Infinity };
+    for (const p of points) {
+      b.s = Math.min(b.s, p.lat);
+      b.n = Math.max(b.n, p.lat);
+      b.w = Math.min(b.w, p.lon);
+      b.e = Math.max(b.e, p.lon);
+    }
+    return b;
+  }
+  function expandBbox(b, meters) {
+    const dLat = deg(meters / EARTH_RADIUS);
+    const midLat = (b.s + b.n) / 2;
+    const dLon = deg(meters / (EARTH_RADIUS * Math.cos(rad(midLat))));
+    return { s: b.s - dLat, n: b.n + dLat, w: b.w - dLon, e: b.e + dLon };
+  }
+  function bboxDiagonal(b) {
+    return distance({ lat: b.s, lon: b.w }, { lat: b.n, lon: b.e });
+  }
+  function parseLength(value) {
+    if (value == null) return null;
+    const str = String(value).trim().toLowerCase().replace(",", ".");
+    const m = str.match(/^(\d+(?:\.\d+)?)\s*(m|meter|metres|meters|ft|feet|'|)$/);
+    if (!m) return null;
+    const n = parseFloat(m[1]);
+    const unit = m[2];
+    const meters = unit === "ft" || unit === "feet" || unit === "'" ? n * 0.3048 : n;
+    return Math.round(meters);
+  }
+  function formatDistance(m) {
+    if (m == null || Number.isNaN(m)) return "–";
+    if (m < 1e3) return `${Math.round(m)} m`;
+    return `${(m / 1e3).toFixed(m < 1e4 ? 1 : 0).replace(".", ",")} km`;
+  }
+
+  // js/store.js
+  var KEY = "kedjeklang:data";
+  var VERSION = 1;
+  var listeners = /* @__PURE__ */ new Set();
+  var state = null;
+  var saveErrorHandler = null;
+  function defaults() {
+    return {
+      version: VERSION,
+      players: [],
+      courses: [],
+      rounds: [],
+      settings: { gps: false, keepAwake: true, mapView: null }
+    };
+  }
+  function migrate(data) {
+    const base = defaults();
+    const merged = { ...base, ...data, settings: { ...base.settings, ...data.settings || {} } };
+    for (const key of ["players", "courses", "rounds"]) {
+      if (!Array.isArray(merged[key])) merged[key] = [];
+    }
+    for (const r of merged.rounds) {
+      r.throws = Array.isArray(r.throws) ? r.throws : [];
+      r.scores = r.scores || {};
+    }
+    merged.version = VERSION;
+    return merged;
+  }
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      state = raw ? migrate(JSON.parse(raw)) : defaults();
+    } catch {
+      state = defaults();
+    }
+    return state;
+  }
+  function getState() {
+    return state || load();
+  }
+  function onSaveError(fn) {
+    saveErrorHandler = fn;
+  }
+  function persist() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+    } catch (err) {
+      saveErrorHandler?.(err);
+    }
+  }
+  function update(mutator) {
+    mutator(state);
+    persist();
+    for (const fn of listeners) fn(state);
+  }
+  function subscribe(fn) {
+    listeners.add(fn);
+    return () => listeners.delete(fn);
+  }
+  var uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  var getMe = () => getState().players.find((p) => p.isMe) || null;
+  function addPlayer(name, isMe = false) {
+    const player = { id: uid(), name: name.trim(), isMe: false };
+    update((s2) => {
+      s2.players.push(player);
+      if (isMe || s2.players.length === 1) setMeIn(s2, player.id);
+    });
+    return player;
+  }
+  function setMeIn(s2, id) {
+    for (const p of s2.players) p.isMe = p.id === id;
+  }
+  function setMe(id) {
+    update((s2) => setMeIn(s2, id));
+  }
+  function renamePlayer(id, name) {
+    update((s2) => {
+      const p = s2.players.find((x) => x.id === id);
+      if (p) p.name = name.trim();
+      for (const r of s2.rounds) {
+        if (r.finishedAt) continue;
+        for (const rp of r.players) if (rp.playerId === id) rp.name = name.trim();
+      }
+    });
+  }
+  function removePlayer(id) {
+    update((s2) => {
+      const wasMe = s2.players.find((p) => p.id === id)?.isMe;
+      s2.players = s2.players.filter((p) => p.id !== id);
+      if (wasMe && s2.players[0]) s2.players[0].isMe = true;
+    });
+  }
+  var getCourse = (id) => getState().courses.find((c) => c.id === id);
+  function findOsmCourse(osmType, osmId) {
+    return getState().courses.find((c) => c.osmType === osmType && c.osmId === osmId) || null;
+  }
+  function saveCourse(course) {
+    const now = Date.now();
+    let saved;
+    update((s2) => {
+      const i = course.id ? s2.courses.findIndex((c) => c.id === course.id) : -1;
+      if (i >= 0) {
+        saved = { ...s2.courses[i], ...course, updatedAt: now };
+        s2.courses[i] = saved;
+      } else {
+        saved = { ...course, id: uid(), createdAt: now, updatedAt: now };
+        s2.courses.push(saved);
+      }
+    });
+    return saved;
+  }
+  function removeCourse(id) {
+    update((s2) => {
+      s2.courses = s2.courses.filter((c) => c.id !== id);
+    });
+  }
+  var getRound = (id) => getState().rounds.find((r) => r.id === id);
+  function activeRound() {
+    return getState().rounds.filter((r) => !r.finishedAt).sort((a, b) => b.startedAt - a.startedAt)[0] || null;
+  }
+  function createRound({ course, players }) {
+    const round = {
+      id: uid(),
+      courseId: course.id || null,
+      courseName: course.name,
+      holes: course.holes.map((h2) => ({
+        label: h2.label,
+        par: h2.par,
+        length: h2.length ?? null,
+        tee: h2.tee || null,
+        basket: h2.basket || null
+      })),
+      players: players.map((p) => ({ playerId: p.id, name: p.name, detailed: !!p.detailed })),
+      scores: Object.fromEntries(players.map((p) => [p.id, course.holes.map(() => null)])),
+      throws: [],
+      currentHole: 0,
+      startedAt: Date.now(),
+      finishedAt: null
+    };
+    update((s2) => {
+      s2.rounds.push(round);
+    });
+    return round;
+  }
+  function withRound(id, fn) {
+    update((s2) => {
+      const r = s2.rounds.find((x) => x.id === id);
+      if (r) fn(r, s2);
+    });
+  }
+  function setStrokes(roundId, playerId, holeIdx, strokes) {
+    withRound(roundId, (r) => {
+      r.scores[playerId][holeIdx] = strokes == null ? null : { s: strokes, t: null };
+    });
+  }
+  function setThrows(roundId, playerId, holeIdx, throws) {
+    withRound(roundId, (r) => {
+      r.scores[playerId][holeIdx] = throws.length ? entryFromThrows(throws) : null;
+    });
+  }
+  function setCurrentHole(roundId, idx) {
+    withRound(roundId, (r) => {
+      r.currentHole = Math.max(0, Math.min(r.holes.length - 1, idx));
+    });
+  }
+  function finishRound(roundId) {
+    withRound(roundId, (r) => {
+      r.finishedAt = Date.now();
+    });
+  }
+  function reopenRound(roundId) {
+    withRound(roundId, (r) => {
+      r.finishedAt = null;
+    });
+  }
+  function deleteRound(roundId) {
+    update((s2) => {
+      s2.rounds = s2.rounds.filter((r) => r.id !== roundId);
+    });
+  }
+  function addThrow(roundId, data) {
+    const t = { id: uid(), at: Date.now(), ...data };
+    withRound(roundId, (r) => r.throws.push(t));
+    return t;
+  }
+  function removeThrow(roundId, throwId) {
+    withRound(roundId, (r) => {
+      r.throws = r.throws.filter((t) => t.id !== throwId);
+    });
+  }
+  function setHolePosition(roundId, holeIdx, kind, point) {
+    withRound(roundId, (r, s2) => {
+      const apply = (hole) => {
+        hole[kind] = point;
+        if (hole.tee && hole.basket && (hole.length == null || hole.lengthFromGps)) {
+          hole.length = Math.round(distance(hole.tee, hole.basket));
+          hole.lengthFromGps = true;
+        }
+      };
+      apply(r.holes[holeIdx]);
+      const course = s2.courses.find((c) => c.id === r.courseId);
+      if (course && course.holes[holeIdx] && course.holes.length === r.holes.length) {
+        apply(course.holes[holeIdx]);
+        course.updatedAt = Date.now();
+      }
+    });
+  }
+  function setSetting(key, value) {
+    update((s2) => {
+      s2.settings[key] = value;
+    });
+  }
+  function exportJson() {
+    return JSON.stringify({ app: "kedjeklang", exportedAt: (/* @__PURE__ */ new Date()).toISOString(), ...getState() }, null, 2);
+  }
+  function importJson(text) {
+    const data = JSON.parse(text);
+    if (!data || data.app !== "kedjeklang" || !Array.isArray(data.rounds)) {
+      throw new Error("Filen är inte en säkerhetskopia från Kedjeklang.");
+    }
+    delete data.app;
+    delete data.exportedAt;
+    const next = migrate(data);
+    update((s2) => {
+      Object.keys(s2).forEach((k) => delete s2[k]);
+      Object.assign(s2, next);
+    });
+  }
+  function clearAll() {
+    update((s2) => {
+      const fresh = defaults();
+      Object.keys(s2).forEach((k) => delete s2[k]);
+      Object.assign(s2, fresh);
+    });
+  }
+
+  // js/ui.js
+  function h(tag, props, ...children) {
+    const el = document.createElement(tag);
+    if (props) {
+      for (const [key, value] of Object.entries(props)) {
+        if (value == null || value === false) continue;
+        if (key === "class") el.className = value;
+        else if (key === "style" && typeof value === "object") Object.assign(el.style, value);
+        else if (key === "dataset") Object.assign(el.dataset, value);
+        else if (key === "html") el.innerHTML = value;
+        else if (key.startsWith("on") && typeof value === "function") el.addEventListener(key.slice(2), value);
+        else if (key in el && typeof value !== "string") el[key] = value;
+        else el.setAttribute(key, value === true ? "" : value);
+      }
+    }
+    append(el, children);
+    return el;
+  }
+  function fill(el, ...children) {
+    el.textContent = "";
+    append(el, children);
+    return el;
+  }
+  function append(el, children) {
+    for (const child of children) {
+      if (child == null || child === false) continue;
+      if (Array.isArray(child)) append(el, child);
+      else el.append(child instanceof Node ? child : String(child));
+    }
+  }
+  var ICONS = {
+    back: '<path d="M15 5l-7 7 7 7"/>',
+    next: '<path d="M9 5l7 7-7 7"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    minus: '<path d="M5 12h14"/>',
+    close: '<path d="M6 6l12 12M18 6L6 18"/>',
+    trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+    edit: '<path d="M4 20h4L19 9l-4-4L4 16v4z"/>',
+    undo: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/>',
+    gps: '<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+    map: '<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>',
+    pin: '<path d="M12 21s7-6.4 7-12a7 7 0 10-14 0c0 5.6 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>',
+    ruler: '<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>',
+    flag: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+    // Flikar
+    play: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/>',
+    courses: '<path d="M12 21s7-6.4 7-12a7 7 0 10-14 0c0 5.6 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>',
+    history: '<path d="M4 6h16M4 12h16M4 18h10"/>',
+    stats: '<path d="M5 20V11M12 20V5M19 20v-6"/>',
+    more: '<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
+    search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
+    download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+    upload: '<path d="M12 20V9M7 14l5-5 5 5M5 4h14"/>',
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+    star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>'
+  };
+  var LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"> <rect width="512" height="512" rx="112" fill="#1c3a2b"/> <rect x="146" y="104" width="220" height="34" rx="17" fill="#f5b700"/> <g stroke="#cfdcd3" stroke-width="12" stroke-linecap="round" fill="none">  <path d="M170 140 Q 204 228 238 292"/>  <path d="M213 140 Q 232 228 247 292"/>  <path d="M256 140 L 256 292"/>  <path d="M299 140 Q 280 228 265 292"/>  <path d="M342 140 Q 308 228 274 292"/> </g> <path d="M146 298 H366 L340 362 H172 Z" fill="#f5b700"/> <rect x="244" y="362" width="24" height="60" fill="#cfdcd3"/> <rect x="206" y="414" width="100" height="18" rx="9" fill="#cfdcd3"/></svg>`;
+  function logo() {
+    const span = document.createElement("span");
+    span.className = "logo";
+    span.setAttribute("aria-hidden", "true");
+    span.innerHTML = LOGO_SVG;
+    return span;
+  }
+  function icon(name, cls = "") {
+    const span = document.createElement("span");
+    span.className = `icon ${cls}`.trim();
+    span.setAttribute("aria-hidden", "true");
+    span.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name] || ""}</svg>`;
+    return span;
+  }
+  var toastTimer = null;
+  function toast(message, { action, onAction, duration = 3500 } = {}) {
+    let el = document.getElementById("toast");
+    if (!el) {
+      el = h("div", { id: "toast", role: "status", "aria-live": "polite" });
+      document.body.append(el);
+    }
+    fill(
+      el,
+      h("span", null, message),
+      action ? h("button", { class: "toast-action", onclick: () => {
+        hide();
+        onAction?.();
+      } }, action) : null
+    );
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hide, duration);
+    function hide() {
+      el.classList.remove("show");
+    }
+  }
+  function openDialog(build) {
+    return new Promise((resolve) => {
+      const dialog = h("dialog", { class: "dialog" });
+      const close = (value) => {
+        dialog.close();
+        dialog.remove();
+        resolve(value);
+      };
+      dialog.append(build(close));
+      dialog.addEventListener("cancel", (e) => {
+        e.preventDefault();
+        close(null);
+      });
+      document.body.append(dialog);
+      dialog.showModal();
+    });
+  }
+  function confirmDialog(message, { title, okText = "OK", danger = false } = {}) {
+    return openDialog(
+      (close) => h(
+        "form",
+        { method: "dialog", onsubmit: (e) => {
+          e.preventDefault();
+          close(true);
+        } },
+        title ? h("h2", null, title) : null,
+        h("p", null, message),
+        h(
+          "div",
+          { class: "dialog-actions" },
+          h("button", { type: "button", class: "btn ghost", onclick: () => close(false) }, "Avbryt"),
+          h("button", { type: "submit", class: `btn ${danger ? "danger" : "primary"}` }, okText)
+        )
+      )
+    ).then(Boolean);
+  }
+  function promptDialog(title, { value = "", placeholder = "", okText = "Spara", label } = {}) {
+    return openDialog((close) => {
+      const input = h("input", { type: "text", value, placeholder, required: true, autocomplete: "off" });
+      setTimeout(() => input.focus(), 30);
+      return h(
+        "form",
+        { onsubmit: (e) => {
+          e.preventDefault();
+          const v = input.value.trim();
+          if (v) close(v);
+        } },
+        h("h2", null, title),
+        h("label", { class: "field" }, label ? h("span", null, label) : null, input),
+        h(
+          "div",
+          { class: "dialog-actions" },
+          h("button", { type: "button", class: "btn ghost", onclick: () => close(null) }, "Avbryt"),
+          h("button", { type: "submit", class: "btn primary" }, okText)
+        )
+      );
+    });
+  }
+  function fmtDiff(d) {
+    if (d == null || Number.isNaN(d)) return "–";
+    const r = Math.round(d * 10) / 10;
+    const str = Number.isInteger(r) ? String(Math.abs(r)) : Math.abs(r).toFixed(1).replace(".", ",");
+    if (r === 0) return "±0";
+    return r > 0 ? `+${str}` : `−${str}`;
+  }
+  function fmtPct(p) {
+    return p == null ? "–" : `${Math.round(p * 100)} %`;
+  }
+  var dateFmt = new Intl.DateTimeFormat("sv-SE", { day: "numeric", month: "short", year: "numeric" });
+  var timeFmt = new Intl.DateTimeFormat("sv-SE", { hour: "2-digit", minute: "2-digit" });
+  function fmtDate(ts) {
+    return dateFmt.format(new Date(ts));
+  }
+  function fmtDateTime(ts) {
+    return `${dateFmt.format(new Date(ts))} kl. ${timeFmt.format(new Date(ts))}`;
+  }
+  function fmtDuration(ms) {
+    const min = Math.round(ms / 6e4);
+    if (min < 60) return `${min} min`;
+    return `${Math.floor(min / 60)} h ${min % 60} min`;
+  }
+  function tick() {
+    try {
+      navigator.vibrate?.(8);
+    } catch {
+    }
+  }
+  function downloadFile(name, text, type = "application/json") {
+    const url = URL.createObjectURL(new Blob([text], { type }));
+    const a = h("a", { href: url, download: name });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1e3);
+  }
+  function pageHeader(title, { back, actions } = {}) {
+    return h(
+      "header",
+      { class: "page-header" },
+      back ? h("a", { class: "icon-btn", href: back, "aria-label": "Tillbaka" }, icon("back")) : null,
+      h("h1", null, title),
+      actions ? h("div", { class: "header-actions" }, actions) : null
+    );
+  }
+  function emptyState(text, action) {
+    return h("div", { class: "empty" }, h("p", null, text), action || null);
+  }
+
+  // js/views/home.js
+  function renderHome(root) {
+    const draw = () => {
+      const state2 = getState();
+      const me = getMe();
+      const active = activeRound();
+      const recent = state2.rounds.filter((r) => r.finishedAt).sort((a, b) => b.startedAt - a.startedAt).slice(0, 4);
+      fill(
+        root,
+        h(
+          "div",
+          { class: "home-top" },
+          h("div", { class: "wordmark" }, logo(), "Kedjeklang")
+        ),
+        h(
+          "div",
+          { class: "content" },
+          !me ? welcome() : null,
+          active ? resumeCard(active) : null,
+          h(
+            "div",
+            { class: "section" },
+            h("a", { class: `btn ${active ? "outline" : "primary"} big block`, href: "#/ny-runda" }, icon("plus"), "Ny runda")
+          ),
+          state2.courses.length === 0 ? h(
+            "div",
+            { class: "section" },
+            emptyState(
+              "Du har inga sparade banor än. Hitta en bana på kartan eller lägg in en egen.",
+              h(
+                "div",
+                { class: "btn-row" },
+                h("a", { class: "btn dark", href: "#/banor/hitta" }, icon("search"), "Hitta banor"),
+                h("a", { class: "btn outline", href: "#/bana/ny" }, "Skapa egen")
+              )
+            )
+          ) : null,
+          recent.length ? h(
+            "div",
+            { class: "section" },
+            h(
+              "div",
+              { class: "section-head" },
+              h("h2", null, "Senaste rundor"),
+              h("a", { class: "link-btn", href: "#/historik" }, "Visa alla")
+            ),
+            h("div", { class: "list" }, recent.map((r) => roundRow(r, me)))
+          ) : null
+        )
+      );
+    };
+    draw();
+    return subscribe(draw);
+  }
+  function welcome() {
+    const input = h("input", { type: "text", placeholder: "Ditt namn", autocomplete: "given-name", required: true });
+    return h(
+      "div",
+      { class: "section welcome" },
+      h("h2", null, "Välkommen"),
+      h("p", { class: "muted" }, "Skriv ditt namn så vet appen vems statistik som är din."),
+      h("form", {
+        class: "inline-form",
+        onsubmit: (e) => {
+          e.preventDefault();
+          if (input.value.trim()) addPlayer(input.value, true);
+        }
+      }, input, h("button", { class: "btn primary", type: "submit" }, "Spara"))
+    );
+  }
+  function resumeCard(r) {
+    const hole = r.holes[r.currentHole];
+    const names = r.players.map((p) => p.name).join(", ");
+    return h(
+      "div",
+      { class: "section" },
+      h(
+        "a",
+        { class: "resume", href: `#/runda/${r.id}` },
+        h(
+          "div",
+          { class: "resume-top" },
+          h("div", { class: "resume-hole" }, h("small", null, "Hål"), hole?.label ?? "–"),
+          h(
+            "div",
+            null,
+            h("h2", null, r.courseName),
+            h("p", null, `Pågående runda med ${names}`)
+          )
+        ),
+        h("span", { class: "btn primary block" }, "Fortsätt rundan")
+      )
+    );
+  }
+  function roundRow(r, me) {
+    const mine = me && r.players.find((p) => p.playerId === me.id);
+    const pid = mine ? me.id : r.players[0]?.playerId;
+    const totals = pid ? roundTotals(r, pid) : null;
+    const href = r.finishedAt ? `#/runda/${r.id}/kort` : `#/runda/${r.id}`;
+    const others = r.players.length - 1;
+    return h(
+      "a",
+      { class: "row", href },
+      h(
+        "div",
+        { class: "row-main" },
+        h("span", { class: "row-title" }, r.courseName, " ", r.finishedAt ? null : h("span", { class: "tag live" }, "Pågår")),
+        h(
+          "span",
+          { class: "row-sub" },
+          fmtDate(r.startedAt),
+          others > 0 ? `, ${others + 1} spelare` : "",
+          !mine && r.players[0] ? ` (${r.players[0].name})` : ""
+        )
+      ),
+      totals && totals.played ? h(
+        "div",
+        { class: "row-end" },
+        h("div", { class: "row-big" }, fmtDiff(totals.diff)),
+        h("span", { class: "row-sub" }, `${totals.strokes} slag`)
+      ) : null
+    );
+  }
+
+  // js/views/courses.js
+  function renderCourses(root) {
+    const draw = () => {
+      const state2 = getState();
+      const lastPlayed = /* @__PURE__ */ new Map();
+      for (const r of state2.rounds) {
+        if (!r.courseId) continue;
+        lastPlayed.set(r.courseId, Math.max(lastPlayed.get(r.courseId) || 0, r.startedAt));
+      }
+      const courses = [...state2.courses].sort(
+        (a, b) => (lastPlayed.get(b.id) || b.updatedAt) - (lastPlayed.get(a.id) || a.updatedAt)
+      );
+      fill(
+        root,
+        pageHeader("Banor"),
+        h(
+          "div",
+          { class: "content" },
+          h(
+            "div",
+            { class: "btn-row" },
+            h("a", { class: "btn dark", href: "#/banor/hitta" }, icon("search"), "Hitta på kartan"),
+            h("a", { class: "btn outline", href: "#/bana/ny" }, icon("plus"), "Skapa egen")
+          ),
+          h(
+            "div",
+            { class: "section" },
+            h("h2", null, "Mina banor"),
+            courses.length ? h(
+              "div",
+              { class: "list" },
+              courses.map((c) => {
+                const par = c.holes.reduce((s2, x) => s2 + x.par, 0);
+                const played = lastPlayed.get(c.id);
+                return h(
+                  "a",
+                  { class: "row", href: `#/bana/${c.id}` },
+                  h(
+                    "div",
+                    { class: "row-main" },
+                    h("span", { class: "row-title" }, c.name),
+                    h(
+                      "span",
+                      { class: "row-sub" },
+                      `${c.holes.length} hål, par ${par}`,
+                      played ? `, spelad ${fmtDate(played)}` : ""
+                    )
+                  ),
+                  h("span", { class: "tag" }, c.source === "osm" ? "Karta" : "Egen"),
+                  icon("next", "chev")
+                );
+              })
+            ) : emptyState("Banor du sparar hamnar här. De fungerar även utan internet.")
+          )
+        )
+      );
+    };
+    draw();
+    return subscribe(draw);
+  }
+
+  // js/gps.js
+  var listeners2 = /* @__PURE__ */ new Set();
+  var watchId = null;
+  var last = null;
+  var lastError = null;
+  function notify() {
+    for (const fn of listeners2) fn(last, lastError);
+  }
+  function isSupported() {
+    return "geolocation" in navigator;
+  }
+  function isOn() {
+    return watchId != null;
+  }
+  function lastFix() {
+    return last;
+  }
+  function start() {
+    if (watchId != null || !isSupported()) return;
+    lastError = null;
+    watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        last = {
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          at: pos.timestamp
+        };
+        lastError = null;
+        notify();
+      },
+      (err) => {
+        lastError = describeError(err);
+        notify();
+      },
+      { enableHighAccuracy: true, maximumAge: 1e3, timeout: 2e4 }
+    );
+  }
+  function stop() {
+    if (watchId != null) navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+  }
+  function subscribe2(fn) {
+    listeners2.add(fn);
+    return () => listeners2.delete(fn);
+  }
+  function bestFix(ms = 5e3, goodEnough = 5) {
+    start();
+    return new Promise((resolve, reject) => {
+      let best = null;
+      let done = false;
+      let off = () => {
+      };
+      const timer = setTimeout(finish, ms);
+      function consider(fix) {
+        if (done || !fix) return;
+        if (!best || fix.accuracy < best.accuracy) best = fix;
+        if (best.accuracy <= goodEnough) finish();
+      }
+      function finish() {
+        if (done) return;
+        done = true;
+        off();
+        clearTimeout(timer);
+        if (!best && last && Date.now() - last.at < 3e4) best = last;
+        if (best) resolve(best);
+        else reject(new Error(lastError || "Ingen GPS-position ännu. Gå ut i det fria och försök igen."));
+      }
+      off = subscribe2((fix) => consider(fix));
+      navigator.geolocation.getCurrentPosition(
+        (pos) => consider({ lat: pos.coords.latitude, lon: pos.coords.longitude, accuracy: pos.coords.accuracy, at: pos.timestamp }),
+        () => {
+        },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: ms }
+      );
+      if (last && Date.now() - last.at < 3e3) consider(last);
+    });
+  }
+  function currentPosition() {
+    return new Promise((resolve, reject) => {
+      if (!isSupported()) return reject(new Error("Den här webbläsaren saknar GPS-stöd."));
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, accuracy: pos.coords.accuracy }),
+        (err) => reject(new Error(describeError(err))),
+        { enableHighAccuracy: false, maximumAge: 6e4, timeout: 15e3 }
+      );
+    });
+  }
+  function describeError(err) {
+    if (err.code === 1) return "Appen har inte tillgång till platsen. Tillåt plats i webbläsarens inställningar.";
+    if (err.code === 2) return "Platsen går inte att avgöra just nu.";
+    if (err.code === 3) return "GPS:en svarade inte i tid.";
+    return err.message || "Okänt GPS-fel.";
+  }
+
+  // js/osm.js
+  var ENDPOINTS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
+  ];
+  async function overpass(query, { signal } = {}) {
+    let lastError2;
+    for (const url of ENDPOINTS) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 3e4);
+      const onAbort = () => ctrl.abort();
+      signal?.addEventListener("abort", onAbort);
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          body: new URLSearchParams({ data: query }),
+          signal: ctrl.signal
+        });
+        if (!res.ok) throw new Error(`Servern svarade ${res.status}`);
+        return await res.json();
+      } catch (err) {
+        if (signal?.aborted) throw err;
+        lastError2 = err;
+      } finally {
+        clearTimeout(timer);
+        signal?.removeEventListener("abort", onAbort);
+      }
+    }
+    throw new Error(
+      navigator.onLine === false ? "Du är offline. Banor från kartan kräver internet." : `Kunde inte nå OpenStreetMap (${lastError2?.message || "okänt fel"}).`
+    );
+  }
+  var COURSE_FILTER = 'nwr["leisure"="disc_golf_course"]';
+  async function findCoursesNear(point, radius = 25e3, opts) {
+    const q = `[out:json][timeout:25];${COURSE_FILTER}(around:${Math.round(radius)},${point.lat},${point.lon});out center tags;`;
+    return parseCourseList(await overpass(q, opts), point);
+  }
+  async function findCoursesInBbox(b, origin, opts) {
+    const q = `[out:json][timeout:25];${COURSE_FILTER}(${b.s},${b.w},${b.n},${b.e});out center tags;`;
+    return parseCourseList(await overpass(q, opts), origin);
+  }
+  function parseCourseList(json, origin) {
+    const list = [];
+    for (const el of json.elements || []) {
+      const pos = el.type === "node" ? { lat: el.lat, lon: el.lon } : el.center;
+      if (!pos) continue;
+      const tags = el.tags || {};
+      list.push({
+        osmType: el.type,
+        osmId: el.id,
+        name: tags.name || tags["name:sv"] || "Namnlös diskgolfbana",
+        lat: pos.lat,
+        lon: pos.lon,
+        holesTag: parseInt(tags.holes || tags["disc_golf:holes"], 10) || null,
+        distance: origin ? distance(origin, pos) : null
+      });
+    }
+    list.sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0) || a.name.localeCompare(b.name, "sv"));
+    return list;
+  }
+  async function fetchCourseDetails(osmType, osmId, opts) {
+    const courseJson = await overpass(`[out:json][timeout:25];${osmType}(${osmId});out geom;`, opts);
+    const course = (courseJson.elements || [])[0];
+    if (!course) throw new Error("Banan finns inte längre i OpenStreetMap.");
+    const area = courseArea(course);
+    const b = expandBbox(area.bbox, 120);
+    const featureJson = await overpass(
+      `[out:json][timeout:25];(way["disc_golf"="hole"](${b.s},${b.w},${b.n},${b.e});node["disc_golf"~"^(tee|basket)$"](${b.s},${b.w},${b.n},${b.e}););out geom;`,
+      opts
+    );
+    return extractCourse(course, featureJson);
+  }
+  function courseArea(el) {
+    if (el.type === "node") {
+      const p = { lat: el.lat, lon: el.lon };
+      return { center: p, bbox: expandBbox(bboxOf([p]), 600), polygons: [], lines: [], radius: 600, memberIds: null };
+    }
+    if (el.type === "way") {
+      const pts = toPoints(el.geometry);
+      const closed = pts.length > 3 && distance(pts[0], pts[pts.length - 1]) < 1;
+      return {
+        center: centerOf(pts),
+        bbox: bboxOf(pts),
+        polygons: closed ? [pts] : [],
+        lines: closed ? [] : [pts],
+        radius: null,
+        memberIds: null
+      };
+    }
+    const polygons = [];
+    const lines = [];
+    const memberIds = /* @__PURE__ */ new Set();
+    const all = [];
+    for (const m of el.members || []) {
+      if (m.type !== "way" || !m.geometry) continue;
+      const pts = toPoints(m.geometry);
+      all.push(...pts);
+      if (m.role === "hole") {
+        memberIds.add(m.ref);
+        continue;
+      }
+      const closed = pts.length > 3 && distance(pts[0], pts[pts.length - 1]) < 1;
+      (closed ? polygons : lines).push(pts);
+    }
+    const bbox = el.bounds ? { s: el.bounds.minlat, w: el.bounds.minlon, n: el.bounds.maxlat, e: el.bounds.maxlon } : bboxOf(all);
+    return {
+      center: { lat: (bbox.s + bbox.n) / 2, lon: (bbox.w + bbox.e) / 2 },
+      bbox,
+      polygons,
+      lines,
+      radius: null,
+      memberIds: memberIds.size ? memberIds : null
+    };
+  }
+  var NEAR_EDGE = 75;
+  function belongs(points, area) {
+    if (area.radius) return points.some((p) => distance(p, area.center) <= area.radius);
+    for (const poly of area.polygons) {
+      for (const p of points) {
+        if (pointInPolygon(p, poly) || distanceToPolyline(p, poly) <= NEAR_EDGE) return true;
+      }
+    }
+    for (const line of area.lines) {
+      if (points.some((p) => distanceToPolyline(p, line) <= 150)) return true;
+    }
+    return area.polygons.length === 0 && area.lines.length === 0;
+  }
+  function extractCourse(courseEl, featureJson) {
+    const tags = courseEl.tags || {};
+    const area = courseArea(courseEl);
+    const warnings = [];
+    const tees = [];
+    const baskets = [];
+    const nodeKind = /* @__PURE__ */ new Map();
+    const holeWays = [];
+    for (const el of featureJson.elements || []) {
+      if (el.type === "node") {
+        const kind = el.tags?.disc_golf;
+        const item = { id: el.id, lat: el.lat, lon: el.lon, ref: el.tags?.ref ?? null };
+        nodeKind.set(el.id, kind);
+        (kind === "tee" ? tees : baskets).push(item);
+      } else if (el.type === "way" && el.geometry) {
+        holeWays.push(el);
+      }
+    }
+    let holes = [];
+    const members = area.memberIds ? holeWays.filter((w) => area.memberIds.has(w.id)) : [];
+    const ways = members.length ? members : holeWays.filter((w) => belongs(endpoints(w), area));
+    for (const w of ways) holes.push(holeFromWay(w, nodeKind, baskets));
+    if (holes.length === 0) {
+      const inside = (n) => belongs([n], area);
+      const t = tees.filter(inside).filter((n) => n.ref != null);
+      const k = baskets.filter(inside).filter((n) => n.ref != null);
+      for (const tee of t) {
+        const basket = k.find((b) => String(b.ref) === String(tee.ref));
+        if (!basket) continue;
+        holes.push({
+          ref: String(tee.ref),
+          par: null,
+          length: Math.round(distance(tee, basket)),
+          tee: { lat: tee.lat, lon: tee.lon },
+          basket: { lat: basket.lat, lon: basket.lon }
+        });
+      }
+    }
+    holes = sortHoles(holes);
+    const missingPar = holes.filter((h2) => h2.par == null).length;
+    if (missingPar) warnings.push(`Par saknas för ${missingPar} hål och har satts till 3. Ändra vid behov.`);
+    const refs = holes.map((h2) => h2.ref).filter((r) => r != null);
+    if (new Set(refs).size !== refs.length) {
+      warnings.push("Flera hål har samma nummer – banan kan ha flera layouter i kartan. Ta bort hål du inte spelar.");
+    }
+    const holesTag = parseInt(tags.holes || tags["disc_golf:holes"], 10) || null;
+    if (holes.length === 0) {
+      warnings.push(
+        holesTag ? `Kartan saknar hålens positioner. Banan har ${holesTag} hål enligt kartan – par sätts till 3.` : "Kartan saknar hålens positioner. Ange antal hål och par själv."
+      );
+    }
+    return {
+      name: tags.name || tags["name:sv"] || "Namnlös diskgolfbana",
+      osmType: courseEl.type,
+      osmId: courseEl.id,
+      lat: area.center.lat,
+      lon: area.center.lon,
+      holesTag,
+      holes: holes.map((h2, i) => ({
+        label: h2.ref != null ? String(h2.ref) : String(i + 1),
+        par: h2.par ?? 3,
+        length: h2.length ?? null,
+        tee: h2.tee,
+        basket: h2.basket
+      })),
+      warnings
+    };
+  }
+  function holeFromWay(w, nodeKind, baskets) {
+    let pts = toPoints(w.geometry);
+    const nodes = w.nodes || [];
+    const first = nodes[0];
+    const last2 = nodes[nodes.length - 1];
+    let reverse = nodeKind.get(first) === "basket" || nodeKind.get(last2) === "tee";
+    if (!reverse && nodeKind.get(last2) !== "basket" && baskets.length) {
+      const nearest = (p) => Math.min(...baskets.map((b) => distance(p, b)));
+      const dStart = nearest(pts[0]);
+      const dEnd = nearest(pts[pts.length - 1]);
+      reverse = dStart < 15 && dEnd > 15;
+    }
+    if (reverse) pts = pts.slice().reverse();
+    const t = w.tags || {};
+    const par = parseInt(t.par ?? t["disc_golf:par"], 10);
+    return {
+      ref: t.ref ?? null,
+      par: Number.isFinite(par) && par > 0 && par < 10 ? par : null,
+      length: parseLength(t["disc_golf:length"]) ?? parseLength(t.dist) ?? parseLength(t.distance) ?? parseLength(t.length) ?? Math.round(pathLength(pts)),
+      tee: pts[0],
+      basket: pts[pts.length - 1]
+    };
+  }
+  function sortHoles(holes) {
+    const key = (r) => {
+      if (r == null) return [2e9, ""];
+      const m = String(r).match(/^(\d+)(.*)$/);
+      return m ? [parseInt(m[1], 10), m[2].toLowerCase()] : [1e9, String(r)];
+    };
+    return holes.map((h2, i) => ({ h: h2, i })).sort((a, b) => {
+      const [an, as] = key(a.h.ref);
+      const [bn, bs] = key(b.h.ref);
+      return an - bn || as.localeCompare(bs, "sv") || a.i - b.i;
+    }).map((x) => x.h);
+  }
+  function toPoints(geometry = []) {
+    return geometry.filter(Boolean).map((g) => ({ lat: g.lat, lon: g.lon }));
+  }
+  function endpoints(w) {
+    const pts = toPoints(w.geometry);
+    return [pts[0], pts[pts.length - 1]];
+  }
+  function centerOf(pts) {
+    const b = bboxOf(pts);
+    return { lat: (b.s + b.n) / 2, lon: (b.w + b.e) / 2 };
+  }
+  async function geocode(text) {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=sv&q=${encodeURIComponent(text)}`;
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) throw new Error(`Platssökningen svarade ${res.status}`);
+    const [hit] = await res.json();
+    return hit ? { lat: parseFloat(hit.lat), lon: parseFloat(hit.lon), name: hit.display_name } : null;
+  }
+
+  // js/mapview.js
+  var TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+  var ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-bidragsgivare';
+  function hasLeaflet() {
+    return typeof window.L !== "undefined";
+  }
+  function createMap(el, { center = [62.39, 17.31], zoom = 13 } = {}) {
+    const map = L.map(el, { zoomControl: true, attributionControl: true, tap: true });
+    L.tileLayer(TILE_URL, { maxZoom: 19, attribution: ATTRIBUTION }).addTo(map);
+    map.setView(center, zoom);
+    setTimeout(() => map.invalidateSize(), 50);
+    return map;
+  }
+  function divIcon(cls, text, size) {
+    return L.divIcon({
+      className: "",
+      html: `<div class="mk ${cls}" style="width:${size}px;height:${size}px">${text ?? ""}</div>`,
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2]
+    });
+  }
+  var markers = {
+    tee: (label) => divIcon("mk-tee", label, 24),
+    basket: (label) => divIcon("mk-basket", label, 24),
+    me: () => divIcon("mk-me", "", 18),
+    course: () => divIcon("mk-course", "", 22)
+  };
+  function drawHoles(map, holes, { highlight = null } = {}) {
+    const layer = L.layerGroup().addTo(map);
+    const bounds = [];
+    holes.forEach((hole, i) => {
+      const pts = [hole.tee, hole.basket].filter(Boolean).map((p) => [p.lat, p.lon]);
+      bounds.push(...pts);
+      const dim = highlight != null && highlight !== i;
+      if (hole.tee && hole.basket) {
+        L.polyline(pts, {
+          color: dim ? "#7d8a82" : "#f5b700",
+          weight: dim ? 2 : 4,
+          opacity: dim ? 0.6 : 0.95,
+          dashArray: dim ? "4 6" : null
+        }).addTo(layer);
+      }
+      if (hole.tee && !dim) L.marker([hole.tee.lat, hole.tee.lon], { icon: markers.tee(hole.label), keyboard: false }).addTo(layer);
+      if (hole.basket) {
+        L.marker([hole.basket.lat, hole.basket.lon], {
+          icon: markers.basket(dim ? "" : hole.label),
+          keyboard: false,
+          opacity: dim ? 0.55 : 1
+        }).addTo(layer);
+      }
+    });
+    return { layer, bounds };
+  }
+  function fit(map, bounds, maxZoom = 17) {
+    if (!bounds.length) return;
+    if (bounds.length === 1) map.setView(bounds[0], maxZoom);
+    else map.fitBounds(bounds, { padding: [24, 24], maxZoom });
+  }
+
+  // js/views/findCourses.js
+  var cache = { results: null, origin: null, label: "" };
+  function renderFindCourses(root) {
+    let ctrl = null;
+    let map = null;
+    let resultLayer = null;
+    let meMarker = null;
+    const status = h("div", { class: "loading", hidden: true });
+    const list = h("div");
+    const searchInput = h("input", { type: "search", placeholder: "Sök ort, t.ex. Umeå", enterkeyhint: "search", "aria-label": "Ort" });
+    const mapEl = h("div", { class: "map tall" });
+    fill(
+      root,
+      pageHeader("Hitta banor", { back: "#/banor" }),
+      h(
+        "div",
+        { class: "content" },
+        h(
+          "form",
+          { class: "inline-form", onsubmit: onSearch },
+          searchInput,
+          h("button", { class: "btn dark", type: "submit", "aria-label": "Sök" }, icon("search"))
+        ),
+        h(
+          "div",
+          { class: "btn-row", style: { margin: "10px 0" } },
+          h("button", { class: "btn primary", type: "button", onclick: () => nearMe() }, icon("gps"), "Nära mig"),
+          h("button", { class: "btn outline", type: "button", onclick: searchView }, "Sök i kartområdet")
+        ),
+        mapEl,
+        status,
+        list,
+        h(
+          "p",
+          { class: "note", style: { marginTop: "14px" } },
+          "Banorna kommer från OpenStreetMap, där vem som helst kan lägga in och rätta banor. Saknas din bana kan du skapa den själv under Banor."
+        )
+      )
+    );
+    if (hasLeaflet()) {
+      const view = getState().settings.mapView;
+      map = createMap(mapEl, view ? { center: [view.lat, view.lon], zoom: view.zoom } : { center: [62.6, 16.5], zoom: 5 });
+      resultLayer = L.layerGroup().addTo(map);
+      let t;
+      map.on("moveend", () => {
+        clearTimeout(t);
+        t = setTimeout(() => {
+          const c = map.getCenter();
+          setSetting("mapView", { lat: c.lat, lon: c.lng, zoom: map.getZoom() });
+        }, 400);
+      });
+    } else {
+      fill(mapEl, h("p", { class: "note", style: { padding: "12px" } }, "Kartan kunde inte laddas."));
+    }
+    if (cache.results) showResults(cache.results, cache.label, false);
+    function setStatus(content, loading = false) {
+      status.hidden = !content;
+      fill(status, loading ? h("span", { class: "spinner" }) : null, content ? h("span", null, content) : null);
+    }
+    function begin() {
+      ctrl?.abort();
+      ctrl = new AbortController();
+      return ctrl.signal;
+    }
+    async function nearMe(radius = 25e3) {
+      const signal = begin();
+      setStatus("Hämtar din position…", true);
+      try {
+        const pos = await currentPosition();
+        if (map) {
+          meMarker?.remove();
+          meMarker = L.marker([pos.lat, pos.lon], { icon: markers.me(), keyboard: false }).addTo(map);
+        }
+        setStatus("Söker banor i närheten…", true);
+        const results = await findCoursesNear(pos, radius, { signal });
+        cache = { results, origin: pos, label: `inom ${radius / 1e3} km` };
+        showResults(results, cache.label, true, pos, radius);
+      } catch (err) {
+        if (!signal.aborted) setStatus(err.message);
+      }
+    }
+    async function searchView() {
+      if (!map) return;
+      const b = map.getBounds();
+      const box = { s: b.getSouth(), w: b.getWest(), n: b.getNorth(), e: b.getEast() };
+      if (bboxDiagonal(box) > 15e4) {
+        setStatus("Området är för stort. Zooma in till en stad eller kommun och sök igen.");
+        return;
+      }
+      const signal = begin();
+      setStatus("Söker banor i kartområdet…", true);
+      try {
+        const c = map.getCenter();
+        const origin = lastFix() || { lat: c.lat, lon: c.lng };
+        const results = await findCoursesInBbox(box, origin, { signal });
+        cache = { results, origin, label: "i kartområdet" };
+        showResults(results, cache.label, false);
+      } catch (err) {
+        if (!signal.aborted) setStatus(err.message);
+      }
+    }
+    async function onSearch(e) {
+      e.preventDefault();
+      const text = searchInput.value.trim();
+      if (!text) return;
+      const signal = begin();
+      setStatus(`Letar upp ${text}…`, true);
+      try {
+        const place = await geocode(text);
+        if (signal.aborted) return;
+        if (!place) {
+          setStatus(`Hittade ingen plats som heter ${text}.`);
+          return;
+        }
+        map?.setView([place.lat, place.lon], 11);
+        setStatus("Söker banor runt orten…", true);
+        const results = await findCoursesNear(place, 2e4, { signal });
+        cache = { results, origin: place, label: `runt ${text}` };
+        showResults(results, cache.label, true, place, 2e4);
+      } catch (err) {
+        if (!signal.aborted) setStatus(err.message);
+      }
+    }
+    function showResults(results, label, fitMap, origin, radius) {
+      setStatus("");
+      resultLayer?.clearLayers();
+      const bounds = [];
+      for (const c of results) {
+        bounds.push([c.lat, c.lon]);
+        if (!resultLayer) continue;
+        const popup = h(
+          "div",
+          null,
+          h("strong", null, c.name),
+          h("br"),
+          h("a", { href: `#/osm/${c.osmType}/${c.osmId}` }, "Visa banan")
+        );
+        L.marker([c.lat, c.lon], { icon: markers.course(), title: c.name }).bindPopup(popup).addTo(resultLayer);
+      }
+      if (fitMap && map) {
+        if (bounds.length) fit(map, bounds, 13);
+        else if (origin) map.setView([origin.lat, origin.lon], 11);
+      }
+      fill(
+        list,
+        h(
+          "div",
+          { class: "section" },
+          h("h2", null, results.length ? `${results.length} ${results.length === 1 ? "bana" : "banor"} ${label}` : `Inga banor ${label}`),
+          results.length ? h(
+            "div",
+            { class: "list" },
+            results.map(
+              (c) => h(
+                "a",
+                { class: "row", href: `#/osm/${c.osmType}/${c.osmId}` },
+                h(
+                  "div",
+                  { class: "row-main" },
+                  h("span", { class: "row-title" }, c.name),
+                  h(
+                    "span",
+                    { class: "row-sub" },
+                    [c.distance != null ? `${formatDistance(c.distance)} bort` : null, c.holesTag ? `${c.holesTag} hål` : null].filter(Boolean).join(", ")
+                  )
+                ),
+                findOsmCourse(c.osmType, c.osmId) ? h("span", { class: "tag" }, "Sparad") : null,
+                icon("next", "chev")
+              )
+            )
+          ) : h(
+            "div",
+            { class: "empty" },
+            h("p", null, "OpenStreetMap har inga diskgolfbanor här. Prova ett större område eller skapa banan själv."),
+            radius && radius < 6e4 ? h("button", { class: "btn outline", onclick: () => searchWider(origin) }, "Sök inom 60 km") : null
+          )
+        )
+      );
+    }
+    async function searchWider(origin) {
+      const signal = begin();
+      setStatus("Söker i ett större område…", true);
+      try {
+        const results = await findCoursesNear(origin, 6e4, { signal });
+        cache = { results, origin, label: "inom 60 km" };
+        showResults(results, cache.label, true, origin, 6e4);
+      } catch (err) {
+        if (!signal.aborted) setStatus(err.message);
+      }
+    }
+    return () => {
+      ctrl?.abort();
+      map?.remove();
+    };
+  }
+
+  // js/views/osmCourse.js
+  var detailsCache = /* @__PURE__ */ new Map();
+  function renderOsmCourse(root, { type, id }) {
+    const osmId = Number(id);
+    const ctrl = new AbortController();
+    let map = null;
+    const body = h("div", { class: "content" }, h("div", { class: "loading" }, h("span", { class: "spinner" }), "Hämtar banan från OpenStreetMap…"));
+    fill(root, pageHeader("Bana", { back: "#/banor/hitta" }), body);
+    const key = `${type}/${osmId}`;
+    const load2 = detailsCache.has(key) ? Promise.resolve(detailsCache.get(key)) : fetchCourseDetails(type, osmId, { signal: ctrl.signal }).then((d) => {
+      detailsCache.set(key, d);
+      return d;
+    });
+    load2.then((course) => {
+      if (!ctrl.signal.aborted) show(course);
+    }).catch((err) => {
+      if (ctrl.signal.aborted) return;
+      fill(
+        body,
+        h("div", { class: "warn error-box" }, err.message),
+        h("a", { class: "btn outline", href: "#/banor/hitta" }, "Tillbaka till sökningen")
+      );
+    });
+    function show(course) {
+      root.querySelector(".page-header h1").textContent = course.name;
+      const existing = findOsmCourse(type, osmId);
+      let holes = course.holes;
+      const countInput = h("input", { type: "number", min: 1, max: 60, value: course.holesTag || 18, inputmode: "numeric" });
+      const mapEl = h("div", { class: "map" });
+      const totalPar = holes.reduce((s2, x) => s2 + x.par, 0);
+      const totalLen = holes.reduce((s2, x) => s2 + (x.length || 0), 0);
+      const buildCourse = () => {
+        if (holes.length === 0) {
+          const n = Math.max(1, Math.min(60, parseInt(countInput.value, 10) || 18));
+          holes = Array.from({ length: n }, (_, i) => ({ label: String(i + 1), par: 3, length: null, tee: null, basket: null }));
+        }
+        return {
+          name: course.name,
+          source: "osm",
+          osmType: type,
+          osmId,
+          lat: course.lat,
+          lon: course.lon,
+          holes
+        };
+      };
+      const save = async (play) => {
+        let saved;
+        if (existing) {
+          const ok = await confirmDialog(
+            "Banan finns redan i Mina banor. Vill du ersätta dess hål med kartans? Positioner du sparat själv försvinner.",
+            { okText: "Ersätt", danger: true }
+          );
+          if (!ok) return;
+          saved = saveCourse({ ...buildCourse(), id: existing.id });
+          toast("Banan är uppdaterad från kartan.");
+        } else {
+          saved = saveCourse(buildCourse());
+          toast("Banan är sparad.");
+        }
+        location.hash = play ? `#/ny-runda?bana=${saved.id}` : `#/bana/${saved.id}`;
+      };
+      fill(
+        body,
+        existing ? h(
+          "div",
+          { class: "warn" },
+          "Banan finns redan bland dina banor. ",
+          h("a", { href: `#/bana/${existing.id}` }, "Öppna den sparade banan")
+        ) : null,
+        holes.length ? h(
+          "p",
+          { class: "muted" },
+          `${holes.length} hål, par ${totalPar}`,
+          totalLen ? `, totalt ${formatDistance(totalLen)}` : ""
+        ) : null,
+        course.warnings.map((w) => h("div", { class: "warn" }, w)),
+        hasLeaflet() ? mapEl : null,
+        holes.length === 0 ? h("label", { class: "field", style: { marginTop: "14px" } }, h("span", null, "Antal hål"), countInput) : h(
+          "div",
+          { class: "section" },
+          h("h2", null, "Hål"),
+          h(
+            "div",
+            { class: "list" },
+            holes.map(
+              (x) => h(
+                "div",
+                { class: "row", style: { cursor: "default" } },
+                h("span", { class: "row-big", style: { width: "42px" } }, x.label),
+                h(
+                  "div",
+                  { class: "row-main" },
+                  h("span", { class: "row-title" }, `Par ${x.par}`),
+                  h("span", { class: "row-sub" }, x.length ? formatDistance(x.length) : "Längd saknas")
+                )
+              )
+            )
+          )
+        ),
+        h(
+          "div",
+          { class: "btn-row sticky-save" },
+          h("button", { class: "btn outline", onclick: () => save(false) }, existing ? "Uppdatera" : "Spara banan"),
+          h("button", { class: "btn primary", onclick: () => save(true) }, existing ? "Uppdatera och spela" : "Spara och spela")
+        )
+      );
+      if (hasLeaflet()) {
+        map = createMap(mapEl, { center: [course.lat, course.lon], zoom: 15 });
+        const { bounds } = drawHoles(map, holes);
+        fit(map, bounds.length ? bounds : [[course.lat, course.lon]], 17);
+      }
+    }
+    return () => {
+      ctrl.abort();
+      map?.remove();
+    };
+  }
+
+  // js/views/courseEditor.js
+  var newHole = (n, par = 3) => ({ label: String(n), par, length: null, tee: null, basket: null });
+  function renderCourseEditor(root, { id }) {
+    const isNew = !id;
+    const original = isNew ? null : getCourse(id);
+    if (!isNew && !original) {
+      fill(
+        root,
+        pageHeader("Bana", { back: "#/banor" }),
+        h("div", { class: "content" }, emptyState("Banan finns inte längre.", h("a", { class: "btn outline", href: "#/banor" }, "Till banor")))
+      );
+      return null;
+    }
+    const draft = isNew ? { name: "", source: "manual", holes: Array.from({ length: 18 }, (_, i) => newHole(i + 1)) } : structuredClone(original);
+    let map = null;
+    let saveTimer = null;
+    let pending = false;
+    const savedNote = h("span", { class: "note" });
+    const summary = h("p", { class: "muted" });
+    const tableWrap = h("div");
+    const mapWrap = h("div");
+    const nameInput = h("input", {
+      type: "text",
+      value: draft.name,
+      placeholder: "T.ex. Sidsjön DGC",
+      oninput: (e) => {
+        draft.name = e.target.value;
+        changed();
+      }
+    });
+    const countInput = h("input", {
+      type: "number",
+      min: 1,
+      max: 60,
+      value: draft.holes.length,
+      inputmode: "numeric",
+      onchange: (e) => {
+        const n = Math.max(1, Math.min(60, parseInt(e.target.value, 10) || 1));
+        e.target.value = n;
+        while (draft.holes.length < n) draft.holes.push(newHole(draft.holes.length + 1));
+        draft.holes.length = n;
+        structural();
+      }
+    });
+    function changed() {
+      updateSummary();
+      if (isNew) return;
+      clearTimeout(saveTimer);
+      savedNote.textContent = "";
+      pending = true;
+      saveTimer = setTimeout(() => {
+        if (!draft.name.trim()) return;
+        saveCourse(draft);
+        pending = false;
+        savedNote.textContent = "Ändringarna är sparade.";
+      }, 500);
+    }
+    function structural() {
+      countInput.value = draft.holes.length;
+      drawTable();
+      drawMap();
+      changed();
+    }
+    function updateSummary() {
+      const par = draft.holes.reduce((s2, x) => s2 + (x.par || 0), 0);
+      const len = draft.holes.reduce((s2, x) => s2 + (x.length || 0), 0);
+      summary.textContent = `${draft.holes.length} hål, par ${par}${len ? `, totalt ${formatDistance(len)}` : ""}`;
+    }
+    function drawTable() {
+      fill(
+        tableWrap,
+        h(
+          "table",
+          { class: "hole-table" },
+          h("thead", null, h("tr", null, h("th", null, "Hål"), h("th", null, "Par"), h("th", null, "Längd (m)"), h("th", null, "GPS"), h("th"))),
+          h(
+            "tbody",
+            null,
+            draft.holes.map(
+              (hole, i) => h(
+                "tr",
+                null,
+                h(
+                  "td",
+                  { class: "lbl" },
+                  h("input", {
+                    type: "text",
+                    value: hole.label,
+                    "aria-label": `Hålnummer för rad ${i + 1}`,
+                    oninput: (e) => {
+                      hole.label = e.target.value.trim() || String(i + 1);
+                      changed();
+                    }
+                  })
+                ),
+                h(
+                  "td",
+                  { class: "par" },
+                  h("select", {
+                    "aria-label": `Par för hål ${hole.label}`,
+                    onchange: (e) => {
+                      hole.par = parseInt(e.target.value, 10);
+                      changed();
+                    }
+                  }, [2, 3, 4, 5, 6].map((p) => h("option", { value: p, selected: hole.par === p }, String(p))))
+                ),
+                h(
+                  "td",
+                  { class: "len" },
+                  h("input", {
+                    type: "number",
+                    min: 1,
+                    inputmode: "numeric",
+                    value: hole.length ?? "",
+                    placeholder: "–",
+                    "aria-label": `Längd för hål ${hole.label}`,
+                    oninput: (e) => {
+                      const v = parseInt(e.target.value, 10);
+                      hole.length = Number.isFinite(v) && v > 0 ? v : null;
+                      hole.lengthFromGps = false;
+                      changed();
+                    }
+                  })
+                ),
+                h(
+                  "td",
+                  { class: "gps", title: "Positioner för utkast och korg" },
+                  h("span", { class: hole.tee ? "ok" : "" }, hole.tee ? "Tee ✓" : "Tee –"),
+                  h("br"),
+                  h("span", { class: hole.basket ? "ok" : "" }, hole.basket ? "Korg ✓" : "Korg –")
+                ),
+                h(
+                  "td",
+                  null,
+                  h("button", {
+                    class: "icon-btn",
+                    "aria-label": `Ta bort hål ${hole.label}`,
+                    disabled: draft.holes.length <= 1,
+                    onclick: () => {
+                      draft.holes.splice(i, 1);
+                      structural();
+                    }
+                  }, icon("trash"))
+                )
+              )
+            )
+          )
+        ),
+        h("button", {
+          class: "btn outline block",
+          style: { marginTop: "10px" },
+          onclick: () => {
+            const last2 = draft.holes[draft.holes.length - 1];
+            const n = parseInt(last2?.label, 10);
+            draft.holes.push(newHole(Number.isFinite(n) ? n + 1 : draft.holes.length + 1));
+            structural();
+          }
+        }, icon("plus"), "Lägg till hål")
+      );
+    }
+    function drawMap() {
+      map?.remove();
+      map = null;
+      const has = draft.holes.some((x) => x.tee || x.basket);
+      if (!has || !hasLeaflet()) {
+        fill(
+          mapWrap,
+          h("p", { class: "note" }, "Hålens positioner kan sparas under rundan: ställ dig vid utkastet eller korgen och tryck på Spara tee här respektive Spara korg här.")
+        );
+        return;
+      }
+      const el = h("div", { class: "map" });
+      fill(mapWrap, el);
+      map = createMap(el, { center: [draft.lat || 62, draft.lon || 16], zoom: 15 });
+      const { bounds } = drawHoles(map, draft.holes);
+      fit(map, bounds);
+    }
+    const actions = isNew ? h(
+      "div",
+      { class: "sticky-save" },
+      h("button", {
+        class: "btn primary block big",
+        onclick: () => {
+          if (!draft.name.trim()) {
+            toast("Ge banan ett namn först.");
+            nameInput.focus();
+            return;
+          }
+          const saved = saveCourse(draft);
+          toast("Banan är sparad.");
+          location.hash = `#/bana/${saved.id}`;
+        }
+      }, "Spara banan")
+    ) : h(
+      "div",
+      { class: "section" },
+      h(
+        "div",
+        { class: "btn-row" },
+        h("a", { class: "btn primary", href: `#/ny-runda?bana=${draft.id}` }, icon("play"), "Spela banan")
+      ),
+      draft.source === "osm" ? h("a", { class: "btn outline block", style: { marginTop: "10px" }, href: `#/osm/${draft.osmType}/${draft.osmId}` }, "Hämta om från kartan") : null,
+      h("button", {
+        class: "btn danger block",
+        style: { marginTop: "10px" },
+        onclick: async () => {
+          const ok = await confirmDialog("Banan tas bort från Mina banor. Rundor du redan spelat finns kvar i historiken.", {
+            title: "Ta bort banan?",
+            okText: "Ta bort",
+            danger: true
+          });
+          if (!ok) return;
+          removeCourse(draft.id);
+          location.hash = "#/banor";
+        }
+      }, icon("trash"), "Ta bort banan")
+    );
+    fill(
+      root,
+      pageHeader(isNew ? "Ny bana" : draft.name || "Bana", { back: "#/banor" }),
+      h(
+        "div",
+        { class: "content" },
+        h("label", { class: "field" }, h("span", null, "Namn"), nameInput),
+        h("label", { class: "field" }, h("span", null, "Antal hål"), countInput),
+        summary,
+        !isNew ? savedNote : null,
+        h("div", { class: "section" }, h("h2", null, "Hål"), tableWrap),
+        h("div", { class: "section" }, h("h2", null, "Karta"), mapWrap),
+        actions
+      )
+    );
+    updateSummary();
+    drawTable();
+    drawMap();
+    if (isNew) setTimeout(() => nameInput.focus(), 50);
+    return () => {
+      clearTimeout(saveTimer);
+      if (!isNew && pending && draft.name.trim() && getCourse(draft.id)) saveCourse(draft);
+      map?.remove();
+    };
+  }
+
+  // js/views/newRound.js
+  function renderNewRound(root, _params, query) {
+    const state2 = getState();
+    let courseId = query.bana && getCourse(query.bana) ? query.bana : null;
+    const me = getMe();
+    const selected = /* @__PURE__ */ new Map();
+    if (me) selected.set(me.id, true);
+    const courseList = h("div");
+    const playerList = h("div");
+    const startBtn = h("button", { class: "btn primary big block", onclick: start2 }, "Starta runda");
+    const newPlayer = h("input", { type: "text", placeholder: "Namn på spelare", autocomplete: "off", "aria-label": "Ny spelare" });
+    const lastPlayed = /* @__PURE__ */ new Map();
+    for (const r of state2.rounds) {
+      if (r.courseId) lastPlayed.set(r.courseId, Math.max(lastPlayed.get(r.courseId) || 0, r.startedAt));
+    }
+    function drawCourses() {
+      const courses = [...getState().courses].sort(
+        (a, b) => (lastPlayed.get(b.id) || 0) - (lastPlayed.get(a.id) || 0) || a.name.localeCompare(b.name, "sv")
+      );
+      fill(
+        courseList,
+        courses.length ? h(
+          "div",
+          { class: "list choice-list", role: "radiogroup", "aria-label": "Bana" },
+          courses.map(
+            (c) => h(
+              "button",
+              {
+                class: "row",
+                type: "button",
+                role: "radio",
+                "aria-checked": String(c.id === courseId),
+                onclick: () => {
+                  courseId = c.id;
+                  drawCourses();
+                  update2();
+                }
+              },
+              h("span", { class: "check" }, c.id === courseId ? icon("flag") : null),
+              h(
+                "div",
+                { class: "row-main" },
+                h("span", { class: "row-title" }, c.name),
+                h("span", { class: "row-sub" }, `${c.holes.length} hål, par ${c.holes.reduce((s2, x) => s2 + x.par, 0)}`)
+              )
+            )
+          )
+        ) : emptyState("Lägg till en bana först.", h(
+          "div",
+          { class: "btn-row" },
+          h("a", { class: "btn dark", href: "#/banor/hitta" }, "Hitta på kartan"),
+          h("a", { class: "btn outline", href: "#/bana/ny" }, "Skapa egen")
+        )),
+        courses.length ? h(
+          "p",
+          { class: "note", style: { marginTop: "8px" } },
+          "Saknas banan? ",
+          h("a", { href: "#/banor/hitta" }, "Hitta den på kartan"),
+          " eller ",
+          h("a", { href: "#/bana/ny" }, "skapa den själv"),
+          "."
+        ) : null
+      );
+    }
+    function drawPlayers() {
+      const players = getState().players;
+      fill(
+        playerList,
+        players.length ? h(
+          "div",
+          { class: "list choice-list" },
+          players.map((p) => {
+            const on = selected.has(p.id);
+            return h(
+              "div",
+              null,
+              h(
+                "button",
+                {
+                  class: "row",
+                  type: "button",
+                  "aria-pressed": String(on),
+                  onclick: () => {
+                    if (on) selected.delete(p.id);
+                    else selected.set(p.id, !!p.isMe);
+                    drawPlayers();
+                    update2();
+                  }
+                },
+                h("span", { class: "check" }, on ? "✓" : null),
+                h(
+                  "div",
+                  { class: "row-main" },
+                  h("span", { class: "row-title" }, p.name, p.isMe ? h("span", { class: "muted" }, " (du)") : null)
+                )
+              ),
+              on ? h(
+                "div",
+                { style: { padding: "0 14px 12px 52px" } },
+                h(
+                  "label",
+                  { class: "switch" },
+                  h("input", {
+                    type: "checkbox",
+                    checked: selected.get(p.id),
+                    onchange: (e) => selected.set(p.id, e.target.checked)
+                  }),
+                  "Detaljerad statistik (logga varje kast)"
+                )
+              ) : null
+            );
+          })
+        ) : h("p", { class: "muted" }, "Lägg till minst en spelare."),
+        h("form", {
+          class: "inline-form",
+          style: { marginTop: "10px" },
+          onsubmit: (e) => {
+            e.preventDefault();
+            const name = newPlayer.value.trim();
+            if (!name) return;
+            const p = addPlayer(name);
+            selected.set(p.id, getState().players.length === 1);
+            newPlayer.value = "";
+            drawPlayers();
+            update2();
+          }
+        }, newPlayer, h("button", { class: "btn outline", type: "submit" }, icon("plus"), "Lägg till"))
+      );
+    }
+    function update2() {
+      startBtn.disabled = !courseId || selected.size === 0;
+    }
+    async function start2() {
+      const course = getCourse(courseId);
+      if (!course || selected.size === 0) return;
+      const active = activeRound();
+      if (active) {
+        const ok = await confirmDialog(
+          `Du har en pågående runda på ${active.courseName}. Den finns kvar i historiken och kan avslutas senare.`,
+          { title: "Starta en ny runda ändå?", okText: "Starta ny" }
+        );
+        if (!ok) return;
+      }
+      const all = getState().players;
+      const players = all.filter((p) => selected.has(p.id)).sort((a, b) => Number(b.isMe) - Number(a.isMe)).map((p) => ({ ...p, detailed: selected.get(p.id) }));
+      const round = createRound({ course, players });
+      toast(`Lycka till på ${course.name}!`);
+      location.hash = `#/runda/${round.id}`;
+    }
+    fill(
+      root,
+      pageHeader("Ny runda", { back: "#/" }),
+      h(
+        "div",
+        { class: "content" },
+        h("div", { class: "section", style: { marginTop: "4px" } }, h("h2", null, "Bana"), courseList),
+        h("div", { class: "section" }, h("h2", null, "Spelare"), playerList),
+        h(
+          "p",
+          { class: "note", style: { marginTop: "10px" } },
+          "Med detaljerad statistik väljer du var varje kast landade (fairway, C1, C2 med flera). Då räknas puttprocent, fairwayträffar och C1/C2 i regulation fram åt dig. Annars anger du bara antal slag."
+        ),
+        h("div", { class: "sticky-save" }, startBtn)
+      )
+    );
+    drawCourses();
+    drawPlayers();
+    update2();
+    return null;
+  }
+
+  // js/views/play.js
+  function renderPlay(root, { id }) {
+    if (!getRound(id)) {
+      fill(root, h(
+        "div",
+        { class: "content", style: { paddingTop: "24px" } },
+        emptyState("Rundan finns inte.", h("a", { class: "btn outline", href: "#/" }, "Till startsidan"))
+      ));
+      return null;
+    }
+    if (getRound(id).finishedAt) {
+      location.replace(`#/runda/${id}/kort`);
+      return null;
+    }
+    const round = () => getRound(id);
+    let expanded = null;
+    let lastHole = -1;
+    let showMap = false;
+    let map = null;
+    let mapLayer = null;
+    let meMarker = null;
+    let wakeLock = null;
+    let sheet = null;
+    const titleEl = h("div", { class: "title" });
+    const signEl = h("section", { class: "tee-sign", "aria-label": "Hålinformation" });
+    const stripEl = h("nav", { class: "hole-strip", "aria-label": "Hål" });
+    const playersEl = h("div", { class: "players" });
+    const navEl = h("div", { class: "hole-nav" });
+    const mapPanel = h("div", { class: "panel", hidden: true });
+    const mapEl = h("div", { class: "map" });
+    const mapExtras = h("div");
+    mapPanel.append(mapEl, mapExtras);
+    const mapBtn = h("button", { class: "btn outline", onclick: toggleMap }, icon("map"), "Karta");
+    fill(
+      root,
+      h(
+        "header",
+        { class: "play-top" },
+        h("a", { class: "icon-btn", href: "#/", "aria-label": "Till startsidan" }, icon("close")),
+        titleEl,
+        h("a", { class: "icon-btn", href: `#/runda/${id}/kort`, "aria-label": "Scorekort" }, icon("history"))
+      ),
+      signEl,
+      stripEl,
+      playersEl,
+      h(
+        "div",
+        { class: "play-tools" },
+        h("button", { class: "btn outline", onclick: openMeasure }, icon("ruler"), "Mät kast"),
+        mapBtn
+      ),
+      mapPanel,
+      navEl
+    );
+    function draw() {
+      const r = round();
+      if (!r || r.finishedAt) return;
+      const idx = r.currentHole;
+      const hole = r.holes[idx];
+      if (idx !== lastHole) {
+        expanded = firstOpenDetailed(r, idx);
+        lastHole = idx;
+      }
+      titleEl.textContent = r.courseName;
+      drawSign(r, hole, idx);
+      drawStrip(r, idx);
+      drawPlayers(r, idx, hole);
+      drawNav(r, idx);
+      if (showMap) drawMapExtras(r, idx);
+    }
+    function drawSign(r, hole, idx) {
+      const len = hole.length ?? (hole.tee && hole.basket ? Math.round(distance(hole.tee, hole.basket)) : null);
+      fill(
+        signEl,
+        h(
+          "div",
+          { class: "sign-main" },
+          h("div", null, h("div", { class: "sign-hole-label" }, "Hål"), h("div", { class: "sign-hole" }, hole.label)),
+          h("div", { class: "sign-of" }, `av ${r.holes.length}`),
+          h(
+            "div",
+            { class: "sign-facts" },
+            h("span", null, "Par"),
+            h("b", null, String(hole.par)),
+            h("span", null, "Längd"),
+            h("b", null, len ? `${len} m` : "–")
+          )
+        ),
+        rangefinder(hole)
+      );
+    }
+    function rangefinder(hole) {
+      const on = isOn();
+      const valueEl = h("div", { class: "rf-value" });
+      const labelEl = h("div", { class: "rf-label" });
+      const wrap = h(
+        "div",
+        { class: "rangefinder" },
+        h("div", { class: "rf-main" }, valueEl, labelEl),
+        h("button", {
+          class: `rf-btn ${on ? "on" : ""}`,
+          "aria-pressed": String(on),
+          onclick: () => {
+            if (isOn()) {
+              stop();
+              setSetting("gps", false);
+            } else {
+              start();
+              setSetting("gps", true);
+            }
+          }
+        }, icon("gps"), on ? "GPS på" : "GPS av")
+      );
+      wrap.update = () => {
+        const fix = lastFix();
+        const target = hole.basket || hole.tee;
+        if (!isOn()) {
+          valueEl.textContent = "– m";
+          labelEl.textContent = "Slå på GPS för avstånd till korgen";
+        } else if (!target) {
+          valueEl.textContent = "– m";
+          labelEl.textContent = "Korgens position saknas. Spara den under Karta.";
+        } else if (!fix) {
+          fill(valueEl, h("span", { class: "spinner" }));
+          labelEl.textContent = "Väntar på GPS…";
+        } else {
+          valueEl.textContent = formatDistance(distance(fix, target));
+          labelEl.textContent = `${hole.basket ? "Till korgen" : "Till utkastet"} (±${Math.round(fix.accuracy)} m)`;
+        }
+      };
+      wrap.update();
+      rfUpdate = wrap.update;
+      return wrap;
+    }
+    let rfUpdate = () => {
+    };
+    function drawStrip(r, idx) {
+      fill(
+        stripEl,
+        ...r.holes.map((hole, i) => {
+          const done = r.players.every((p) => entryStrokes(r.scores[p.playerId][i]) != null);
+          return h("button", {
+            class: `hole-chip ${i === idx ? "current" : ""} ${done ? "done" : ""}`,
+            "aria-current": i === idx ? "step" : null,
+            "aria-label": `Hål ${hole.label}${done ? ", klart" : ""}`,
+            onclick: () => setCurrentHole(id, i)
+          }, hole.label);
+        })
+      );
+      const cur = stripEl.children[idx];
+      if (cur) {
+        const a = cur.getBoundingClientRect();
+        const b = stripEl.getBoundingClientRect();
+        const left = stripEl.scrollLeft + (a.left - b.left) - b.width / 2 + a.width / 2;
+        stripEl.scrollLeft = Math.max(0, left);
+      }
+    }
+    function drawPlayers(r, idx, hole) {
+      fill(playersEl, ...r.players.map((p) => playerCard(r, p, idx, hole)));
+    }
+    function playerCard(r, p, idx, hole) {
+      const entry = r.scores[p.playerId][idx];
+      const strokes = entryStrokes(entry);
+      const totals = roundTotals(r, p.playerId);
+      const sub = totals.played ? `${fmtDiff(totals.diff)} efter ${totals.played} hål` : "Inga hål spelade";
+      const head = (end) => h(
+        "div",
+        { class: "player-head" },
+        h("div", { class: "player-name" }, h("strong", null, p.name), h("span", null, sub)),
+        end
+      );
+      const useThrows = p.detailed && !(entry && !Array.isArray(entry.t) && entry.s != null);
+      if (!useThrows) {
+        return h(
+          "div",
+          { class: "player" },
+          head(stepper(p, idx, hole, strokes)),
+          p.detailed ? h("button", { class: "expand-btn", onclick: () => setThrows(id, p.playerId, idx, []) }, "Logga kast i stället") : null
+        );
+      }
+      const throws = Array.isArray(entry?.t) ? entry.t : [];
+      const done = throwsDone(throws);
+      const isOpen = expanded === p.playerId;
+      const badge = done ? scoreBadge(strokes, hole.par) : h(
+        "div",
+        { class: "score-num", "aria-label": "Pågår" },
+        throws.length ? String(strokesFromThrows(throws)) : "–",
+        h("small", null, throws.length ? "hittills" : "kast")
+      );
+      return h(
+        "div",
+        { class: "player" },
+        h("div", {
+          role: "button",
+          tabindex: 0,
+          "aria-expanded": String(isOpen),
+          style: { cursor: "pointer" },
+          onclick: () => {
+            expanded = isOpen ? null : p.playerId;
+            draw();
+          },
+          onkeydown: (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              expanded = isOpen ? null : p.playerId;
+              draw();
+            }
+          }
+        }, head(badge)),
+        throws.length ? h(
+          "div",
+          { class: "throws", "aria-label": "Kast" },
+          throws.map(
+            (z, i) => h("span", { class: `throw-chip ${z}` }, h("i", null, String(i + 1)), ZONES[z].label)
+          )
+        ) : null,
+        isOpen && !done ? h(
+          "div",
+          null,
+          h(
+            "div",
+            { class: "zone-grid", role: "group", "aria-label": `Var landade kast ${throws.length + 1}?` },
+            ZONE_ORDER.map(
+              (z) => h("button", {
+                class: `zone-btn ${z}`,
+                onclick: () => {
+                  tick();
+                  const next = [...throws, z];
+                  if (z === "basket") {
+                    expanded = nextOpenDetailed(r, idx, p.playerId);
+                  }
+                  setThrows(id, p.playerId, idx, next);
+                }
+              }, ZONES[z].label, h("small", null, ZONES[z].hint))
+            )
+          )
+        ) : null,
+        isOpen || done ? h(
+          "div",
+          { class: "detail-actions" },
+          throws.length ? h("button", {
+            class: "expand-btn",
+            onclick: () => {
+              expanded = p.playerId;
+              setThrows(id, p.playerId, idx, throws.slice(0, -1));
+            }
+          }, icon("undo"), " Ångra senaste kast") : h("span"),
+          h("button", {
+            class: "expand-btn",
+            onclick: () => setStrokes(id, p.playerId, idx, done ? strokes : hole.par)
+          }, "Ange bara antal slag")
+        ) : !throws.length ? h("button", { class: "expand-btn", onclick: () => {
+          expanded = p.playerId;
+          draw();
+        } }, "Tryck för att logga kast") : null
+      );
+    }
+    function stepper(p, idx, hole, strokes) {
+      const set = (v) => {
+        tick();
+        setStrokes(id, p.playerId, idx, v);
+      };
+      return h(
+        "div",
+        { class: "stepper" },
+        h("button", {
+          class: "step-btn",
+          "aria-label": `Ett slag mindre för ${p.name}`,
+          onclick: () => set(strokes == null ? Math.max(1, hole.par - 1) : Math.max(1, strokes - 1))
+        }, icon("minus")),
+        strokes == null ? h("button", {
+          class: "score-num",
+          "aria-label": `Sätt par för ${p.name}`,
+          onclick: () => set(hole.par)
+        }, "–", h("small", null, "tryck = par")) : scoreBadge(strokes, hole.par, true, () => set(null), p.name),
+        h("button", {
+          class: "step-btn",
+          "aria-label": `Ett slag mer för ${p.name}`,
+          onclick: () => set(strokes == null ? hole.par + 1 : Math.min(20, strokes + 1))
+        }, icon("plus"))
+      );
+    }
+    function scoreBadge(strokes, par, asButton = false, onClear, name) {
+      const cat = scoreCategory(strokes, par);
+      const props = {
+        class: `score-num sc-${cat}`,
+        "aria-label": `${strokes} slag, ${scoreName(strokes, par)}`
+      };
+      if (asButton) {
+        props.title = "Håll in för att rensa";
+        props["aria-label"] = `${name}: ${strokes} slag, ${scoreName(strokes, par)}. Håll in för att rensa.`;
+        let timer;
+        props.onpointerdown = () => {
+          timer = setTimeout(() => {
+            timer = null;
+            onClear?.();
+          }, 650);
+        };
+        props.onpointerup = props.onpointerleave = () => clearTimeout(timer);
+        props.oncontextmenu = (e) => e.preventDefault();
+      }
+      return h(asButton ? "button" : "div", props, String(strokes), h("small", null, scoreName(strokes, par)));
+    }
+    function drawNav(r, idx) {
+      const last2 = idx === r.holes.length - 1;
+      fill(
+        navEl,
+        h("button", {
+          class: "btn outline",
+          disabled: idx === 0,
+          "aria-label": "Föregående hål",
+          onclick: () => setCurrentHole(id, idx - 1)
+        }, icon("back")),
+        last2 ? h("button", { class: "btn dark next", onclick: finish }, icon("flag"), "Avsluta rundan") : h("button", { class: "btn primary next", onclick: () => setCurrentHole(id, idx + 1) }, "Nästa hål", icon("next"))
+      );
+    }
+    function firstOpenDetailed(r, idx) {
+      const p = r.players.find((x) => x.detailed && !throwsDone(r.scores[x.playerId][idx]?.t) && entryStrokes(r.scores[x.playerId][idx]) == null);
+      return p ? p.playerId : null;
+    }
+    function nextOpenDetailed(r, idx, after) {
+      const start2 = r.players.findIndex((x) => x.playerId === after);
+      const rest = [...r.players.slice(start2 + 1), ...r.players.slice(0, start2)];
+      const p = rest.find((x) => x.detailed && entryStrokes(r.scores[x.playerId][idx]) == null);
+      return p ? p.playerId : null;
+    }
+    async function finish() {
+      const r = round();
+      const missing = r.holes.filter((_, i) => r.players.some((p) => entryStrokes(r.scores[p.playerId][i]) == null)).length;
+      const ok = await confirmDialog(
+        missing ? `${missing} hål saknar resultat för minst en spelare. De räknas inte in i totalen.` : "Rundan sparas i historiken och räknas in i statistiken.",
+        { title: "Avsluta rundan?", okText: "Avsluta" }
+      );
+      if (!ok) return;
+      finishRound(id);
+      location.hash = `#/runda/${id}/kort`;
+    }
+    function toggleMap() {
+      showMap = !showMap;
+      mapPanel.hidden = !showMap;
+      mapBtn.classList.toggle("dark", showMap);
+      mapBtn.classList.toggle("outline", !showMap);
+      if (showMap) {
+        if (!map && hasLeaflet()) {
+          const r = round();
+          const hole = r.holes[r.currentHole];
+          const c = hole.tee || hole.basket || { lat: 62, lon: 16 };
+          map = createMap(mapEl, { center: [c.lat, c.lon], zoom: 17 });
+        } else if (!hasLeaflet()) {
+          fill(mapEl, h("p", { class: "note", style: { padding: "12px" } }, "Kartan kunde inte laddas."));
+        }
+        drawMapExtras(round(), round().currentHole);
+        setTimeout(() => {
+          map?.invalidateSize();
+          mapPanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }, 60);
+      }
+    }
+    let mapHole = -1;
+    function drawMapExtras(r, idx) {
+      const hole = r.holes[idx];
+      if (map) {
+        mapLayer?.remove();
+        mapLayer = drawHoles(map, r.holes, { highlight: idx }).layer;
+        if (mapHole !== idx) {
+          const pts = [hole.tee, hole.basket].filter(Boolean).map((p) => [p.lat, p.lon]);
+          const fix2 = lastFix();
+          if (pts.length) fit(map, pts, 18);
+          else if (fix2) map.setView([fix2.lat, fix2.lon], 17);
+          mapHole = idx;
+        }
+        updateMe();
+      }
+      const fix = lastFix();
+      const throwsHere = r.throws.filter((t) => t.hole === idx);
+      fill(
+        mapExtras,
+        h(
+          "div",
+          { class: "pos-row" },
+          h("button", { class: "btn outline", disabled: !isOn(), onclick: () => savePosition("tee") }, icon("pin"), hole.tee ? "Flytta tee hit" : "Spara tee här"),
+          h("button", { class: "btn outline", disabled: !isOn(), onclick: () => savePosition("basket") }, icon("pin"), hole.basket ? "Flytta korg hit" : "Spara korg här")
+        ),
+        !isOn() ? h("p", { class: "note", style: { marginTop: "8px" } }, "Slå på GPS för att spara positioner.") : null,
+        isOn() && fix && fix.accuracy > 15 ? h("p", { class: "note", style: { marginTop: "8px" } }, `GPS:en är osäker just nu (±${Math.round(fix.accuracy)} m). Vänta en stund för bättre precision.`) : null,
+        throwsHere.length ? h(
+          "ul",
+          { class: "throw-list", "aria-label": "Uppmätta kast på hålet" },
+          throwsHere.map(
+            (t) => h(
+              "li",
+              null,
+              h("b", null, formatDistance(t.distance)),
+              h("span", { style: { flex: 1 } }, r.players.find((p) => p.playerId === t.playerId)?.name || ""),
+              h("button", { class: "icon-btn", "aria-label": "Ta bort kastet", onclick: () => removeThrow(id, t.id) }, icon("trash"))
+            )
+          )
+        ) : null
+      );
+    }
+    async function savePosition(kind) {
+      try {
+        toast("Hämtar position…", { duration: 6e3 });
+        const fix = await bestFix(4e3, 4);
+        const r = round();
+        const idx = r.currentHole;
+        const hole = r.holes[idx];
+        const point = { lat: fix.lat, lon: fix.lon };
+        const old = hole[kind];
+        if (old && distance(old, point) > 150) {
+          const ok = await confirmDialog(
+            `Den nya positionen ligger ${formatDistance(distance(old, point))} från den gamla. Står du vid rätt hål?`,
+            { okText: "Spara ändå" }
+          );
+          if (!ok) return;
+        }
+        setHolePosition(id, idx, kind, point);
+        toast(`${kind === "tee" ? "Utkastets" : "Korgens"} position är sparad (±${Math.round(fix.accuracy)} m).`);
+      } catch (err) {
+        toast(err.message);
+      }
+    }
+    function updateMe() {
+      if (!map) return;
+      const fix = lastFix();
+      if (!fix || !isOn()) {
+        meMarker?.remove();
+        meMarker = null;
+        return;
+      }
+      if (!meMarker) meMarker = L.marker([fix.lat, fix.lon], { icon: markers.me(), keyboard: false, zIndexOffset: 1e3 }).addTo(map);
+      else meMarker.setLatLng([fix.lat, fix.lon]);
+    }
+    function openMeasure() {
+      closeSheet();
+      const r = round();
+      const idx = r.currentHole;
+      const me = getMe();
+      let playerId = r.players.find((p) => p.playerId === me?.id)?.playerId || r.players[0].playerId;
+      let from = null;
+      let to = null;
+      let phase = "ready";
+      let offGps = null;
+      start();
+      const body = h("div");
+      const backdrop = h("div", {
+        class: "sheet-backdrop",
+        onclick: (e) => {
+          if (e.target === backdrop) closeSheet();
+        }
+      }, h(
+        "div",
+        { class: "sheet", role: "dialog", "aria-modal": "true", "aria-label": "Mät kast" },
+        h(
+          "div",
+          { class: "sheet-head" },
+          h("h2", null, "Mät kast"),
+          h("button", { class: "icon-btn", "aria-label": "Stäng", onclick: () => closeSheet() }, icon("close"))
+        ),
+        body
+      ));
+      document.body.append(backdrop);
+      sheet = {
+        el: backdrop,
+        close: () => {
+          offGps?.();
+          if (!getState().settings.gps) stop();
+        }
+      };
+      const render2 = () => {
+        const fix = lastFix();
+        if (phase === "ready") {
+          fill(
+            body,
+            h(
+              "ol",
+              { class: "measure-steps" },
+              h("li", null, "Ställ dig där kastet görs, till exempel på utkastet."),
+              h("li", null, "Tryck Start, kasta och gå till disken."),
+              h("li", null, "Tryck när du står vid disken.")
+            ),
+            h("p", { class: "measure-acc" }, fix ? `GPS-precision just nu: ±${Math.round(fix.accuracy)} m` : "Väntar på GPS…"),
+            h("button", { class: "btn primary big block", onclick: begin }, "Start")
+          );
+        } else if (phase === "locating") {
+          fill(body, h("div", { class: "loading" }, h("span", { class: "spinner" }), "Hämtar exakt position…"));
+        } else if (phase === "walking") {
+          const d = fix ? distance(from, fix) : 0;
+          fill(
+            body,
+            h("div", { class: "measure-value", "aria-live": "polite" }, formatDistance(d)),
+            h("p", { class: "measure-acc" }, "Gå till disken. Avståndet uppdateras medan du går."),
+            h("button", { class: "btn primary big block", onclick: end }, "Disken ligger här"),
+            h("button", { class: "btn ghost block", style: { marginTop: "8px" }, onclick: () => {
+              phase = "ready";
+              offGps?.();
+              render2();
+            } }, "Börja om")
+          );
+        } else if (phase === "result") {
+          const d = distance(from, to);
+          const acc = Math.round(Math.hypot(from.accuracy, to.accuracy));
+          fill(
+            body,
+            h("div", { class: "measure-value" }, formatDistance(d)),
+            h("p", { class: "measure-acc" }, `Osäkerhet ungefär ±${acc} m`),
+            h("p", { style: { fontWeight: 600, margin: "14px 0 6px" } }, "Vems kast?"),
+            h(
+              "div",
+              { class: "segmented", role: "group" },
+              r.players.map(
+                (p) => h("button", {
+                  "aria-pressed": String(p.playerId === playerId),
+                  onclick: () => {
+                    playerId = p.playerId;
+                    render2();
+                  }
+                }, p.name)
+              )
+            ),
+            h(
+              "div",
+              { class: "btn-row", style: { marginTop: "16px" } },
+              h("button", { class: "btn outline", onclick: () => {
+                phase = "ready";
+                render2();
+              } }, "Mät igen"),
+              h("button", {
+                class: "btn primary",
+                onclick: () => {
+                  addThrow(id, {
+                    hole: idx,
+                    playerId,
+                    distance: Math.round(d),
+                    from: { lat: from.lat, lon: from.lon },
+                    to: { lat: to.lat, lon: to.lon },
+                    accuracy: acc
+                  });
+                  toast(`Kastet på ${formatDistance(d)} är sparat.`);
+                  closeSheet();
+                }
+              }, "Spara kastet")
+            )
+          );
+        }
+      };
+      async function begin() {
+        phase = "locating";
+        render2();
+        try {
+          from = await bestFix(5e3, 4);
+          phase = "walking";
+          offGps = subscribe2(() => phase === "walking" && render2());
+          render2();
+        } catch (err) {
+          phase = "ready";
+          render2();
+          toast(err.message);
+        }
+      }
+      async function end() {
+        offGps?.();
+        phase = "locating";
+        render2();
+        try {
+          to = await bestFix(5e3, 4);
+          phase = "result";
+        } catch (err) {
+          phase = "walking";
+          offGps = subscribe2(() => phase === "walking" && render2());
+          toast(err.message);
+        }
+        render2();
+      }
+      const offReady = subscribe2(() => phase === "ready" && render2());
+      const prevClose = sheet.close;
+      sheet.close = () => {
+        offReady();
+        prevClose();
+      };
+      render2();
+    }
+    function closeSheet() {
+      if (!sheet) return;
+      sheet.close();
+      sheet.el.remove();
+      sheet = null;
+    }
+    async function requestWakeLock() {
+      if (!getState().settings.keepAwake || !("wakeLock" in navigator)) return;
+      try {
+        wakeLock = await navigator.wakeLock.request("screen");
+      } catch {
+        wakeLock = null;
+      }
+    }
+    const onVisible = () => {
+      if (document.visibilityState === "visible") requestWakeLock();
+    };
+    if (getState().settings.gps) start();
+    const offStore = subscribe(draw);
+    const offGpsMain = subscribe2(() => {
+      rfUpdate();
+      updateMe();
+    });
+    document.addEventListener("visibilitychange", onVisible);
+    requestWakeLock();
+    draw();
+    return () => {
+      offStore();
+      offGpsMain();
+      closeSheet();
+      stop();
+      document.removeEventListener("visibilitychange", onVisible);
+      wakeLock?.release?.().catch(() => {
+      });
+      map?.remove();
+    };
+  }
+
+  // js/stats.js
+  var pct = (a, b) => b > 0 ? a / b : null;
+  function computeStats(state2, playerId, filter = {}) {
+    const rounds = state2.rounds.filter((r) => r.finishedAt && r.players.some((p) => p.playerId === playerId)).filter((r) => !filter.courseKey || courseKeyOf(r) === filter.courseKey).sort((a, b) => a.startedAt - b.startedAt);
+    const dist = { ace: 0, eagle: 0, birdie: 0, par: 0, bogey: 0, double: 0 };
+    const acc = {
+      holes: 0,
+      detailedHoles: 0,
+      fairwayChances: 0,
+      fairwayHits: 0,
+      regChances: 0,
+      c2r: 0,
+      c1r: 0,
+      parked: 0,
+      scrambleChances: 0,
+      scrambles: 0,
+      c1Att: 0,
+      c1Made: 0,
+      c1xAtt: 0,
+      c1xMade: 0,
+      c2Att: 0,
+      c2Made: 0,
+      ob: 0
+    };
+    const trend = [];
+    let best = null;
+    for (const r of rounds) {
+      const totals = roundTotals(r, playerId);
+      if (totals.played === 0) continue;
+      trend.push({
+        roundId: r.id,
+        date: r.startedAt,
+        courseName: r.courseName,
+        diff: totals.diff,
+        strokes: totals.strokes,
+        complete: totals.complete
+      });
+      if (totals.complete && (!best || totals.diff < best.diff)) {
+        best = { roundId: r.id, diff: totals.diff, strokes: totals.strokes, courseName: r.courseName, date: r.startedAt };
+      }
+      const entries = r.scores[playerId] || [];
+      r.holes.forEach((hole, i) => {
+        const entry = entries[i];
+        const s2 = entryStrokes(entry);
+        if (s2 == null) return;
+        acc.holes++;
+        dist[scoreCategory(s2, hole.par)]++;
+        const a = analyzeHole(entry, hole.par);
+        if (!a) return;
+        acc.detailedHoles++;
+        acc.fairwayChances += a.fairwayChances;
+        acc.fairwayHits += a.fairwayHits;
+        if (a.regChance) {
+          acc.regChances++;
+          if (a.c2r) acc.c2r++;
+          if (a.c1r) acc.c1r++;
+          if (a.parked) acc.parked++;
+        }
+        if (a.scrambleChance) {
+          acc.scrambleChances++;
+          if (a.scramble) acc.scrambles++;
+        }
+        acc.c1Att += a.c1Att;
+        acc.c1Made += a.c1Made;
+        acc.c1xAtt += a.c1xAtt;
+        acc.c1xMade += a.c1xMade;
+        acc.c2Att += a.c2Att;
+        acc.c2Made += a.c2Made;
+        acc.ob += a.ob;
+      });
+    }
+    const complete = trend.filter((t) => t.complete);
+    const avgDiff = complete.length ? complete.reduce((sum, t) => sum + t.diff, 0) / complete.length : null;
+    const throws = [];
+    for (const r of rounds) {
+      for (const t of r.throws || []) {
+        if (t.playerId === playerId) throws.push({ ...t, courseName: r.courseName });
+      }
+    }
+    const longest = throws.reduce((m, t) => !m || t.distance > m.distance ? t : m, null);
+    const avgThrow = throws.length ? throws.reduce((s2, t) => s2 + t.distance, 0) / throws.length : null;
+    return {
+      roundCount: trend.length,
+      completeCount: complete.length,
+      avgDiff,
+      best,
+      trend,
+      distribution: dist,
+      holes: acc.holes,
+      detailedHoles: acc.detailedHoles,
+      fairway: { made: acc.fairwayHits, att: acc.fairwayChances, pct: pct(acc.fairwayHits, acc.fairwayChances) },
+      c2r: { made: acc.c2r, att: acc.regChances, pct: pct(acc.c2r, acc.regChances) },
+      c1r: { made: acc.c1r, att: acc.regChances, pct: pct(acc.c1r, acc.regChances) },
+      parked: { made: acc.parked, att: acc.regChances, pct: pct(acc.parked, acc.regChances) },
+      scramble: { made: acc.scrambles, att: acc.scrambleChances, pct: pct(acc.scrambles, acc.scrambleChances) },
+      c1: { made: acc.c1Made, att: acc.c1Att, pct: pct(acc.c1Made, acc.c1Att) },
+      c1x: { made: acc.c1xMade, att: acc.c1xAtt, pct: pct(acc.c1xMade, acc.c1xAtt) },
+      c2: { made: acc.c2Made, att: acc.c2Att, pct: pct(acc.c2Made, acc.c2Att) },
+      ob: acc.ob,
+      obPerRound: acc.detailedHoles ? acc.ob / acc.detailedHoles * 18 : null,
+      throws: {
+        count: throws.length,
+        longest,
+        average: avgThrow,
+        recent: throws.sort((a, b) => b.at - a.at).slice(0, 10)
+      },
+      holeAverages: filter.courseKey ? holeAverages(rounds, playerId) : null
+    };
+  }
+  function holeAverages(rounds, playerId) {
+    const latest = rounds[rounds.length - 1];
+    if (!latest) return [];
+    return latest.holes.map((hole, i) => {
+      let sum = 0;
+      let count = 0;
+      for (const r of rounds) {
+        if (r.holes.length !== latest.holes.length) continue;
+        const s2 = entryStrokes((r.scores[playerId] || [])[i]);
+        if (s2 != null) {
+          sum += s2;
+          count++;
+        }
+      }
+      const avg = count ? sum / count : null;
+      return { label: hole.label, par: hole.par, avg, diff: avg == null ? null : avg - hole.par, count };
+    });
+  }
+  function courseKeyOf(round) {
+    return round.courseId || `namn:${round.courseName}`;
+  }
+  function playedCourses(state2, playerId) {
+    const map = /* @__PURE__ */ new Map();
+    for (const r of state2.rounds) {
+      if (!r.finishedAt || !r.players.some((p) => p.playerId === playerId)) continue;
+      const key = courseKeyOf(r);
+      const item = map.get(key) || { key, name: r.courseName, count: 0 };
+      item.count++;
+      map.set(key, item);
+    }
+    return [...map.values()].sort((a, b) => b.count - a.count);
+  }
+
+  // js/views/scorecard.js
+  function renderScorecard(root, { id }) {
+    const draw = () => {
+      const r = getRound(id);
+      if (!r) {
+        fill(
+          root,
+          pageHeader("Scorekort", { back: "#/historik" }),
+          h("div", { class: "content" }, emptyState("Rundan finns inte längre.", h("a", { class: "btn outline", href: "#/historik" }, "Till historiken")))
+        );
+        return;
+      }
+      const ranked = r.players.map((p) => ({ ...p, totals: roundTotals(r, p.playerId) })).sort((a, b) => (b.totals.played > 0) - (a.totals.played > 0) || a.totals.diff - b.totals.diff || a.totals.strokes - b.totals.strokes);
+      const coursePar = r.holes.reduce((s2, x) => s2 + x.par, 0);
+      const detailed = r.players.filter((p) => p.detailed);
+      const asFinished = { rounds: [{ ...r, finishedAt: r.finishedAt || Date.now() }] };
+      fill(
+        root,
+        pageHeader(r.courseName, { back: r.finishedAt ? "#/historik" : `#/runda/${r.id}` }),
+        h(
+          "div",
+          { class: "content" },
+          h(
+            "p",
+            { class: "muted" },
+            fmtDateTime(r.startedAt),
+            r.finishedAt ? `, ${fmtDuration(r.finishedAt - r.startedAt)}` : "",
+            `. ${r.holes.length} hål, par ${coursePar}.`
+          ),
+          !r.finishedAt ? h(
+            "div",
+            { class: "btn-row" },
+            h("a", { class: "btn primary", href: `#/runda/${r.id}` }, "Fortsätt spela"),
+            h("button", {
+              class: "btn dark",
+              onclick: async () => {
+                if (await confirmDialog("Rundan sparas i historiken och räknas in i statistiken.", { title: "Avsluta rundan?", okText: "Avsluta" })) {
+                  finishRound(r.id);
+                }
+              }
+            }, icon("flag"), "Avsluta")
+          ) : null,
+          h(
+            "div",
+            { class: "section leader" },
+            ranked.map(
+              (p, i) => h(
+                "div",
+                { class: "leader-row" },
+                h("span", { class: "leader-pos" }, ranked.length > 1 ? String(i + 1) : ""),
+                h(
+                  "div",
+                  { class: "row-main" },
+                  h("strong", null, p.name),
+                  h("span", { class: "row-sub" }, p.totals.complete ? `${p.totals.strokes} slag` : `${p.totals.strokes} slag på ${p.totals.played} av ${r.holes.length} hål`)
+                ),
+                h("div", { class: "leader-score" }, h("b", null, p.totals.played ? fmtDiff(p.totals.diff) : "–"))
+              )
+            )
+          ),
+          h(
+            "div",
+            { class: "section" },
+            h("h2", null, "Scorekort"),
+            h(
+              "div",
+              { class: "scorecard-wrap" },
+              h(
+                "table",
+                { class: "scorecard" },
+                h(
+                  "thead",
+                  null,
+                  h(
+                    "tr",
+                    null,
+                    h("th", { scope: "col" }, "Hål"),
+                    h("th", { scope: "col" }, "Par"),
+                    r.players.map((p) => h("th", { scope: "col", title: p.name }, p.name))
+                  )
+                ),
+                h(
+                  "tbody",
+                  null,
+                  r.holes.map(
+                    (hole, i) => h(
+                      "tr",
+                      null,
+                      h("th", { scope: "row" }, hole.label),
+                      h("td", { class: "par" }, String(hole.par)),
+                      r.players.map((p) => {
+                        const s2 = entryStrokes(r.scores[p.playerId][i]);
+                        return h(
+                          "td",
+                          null,
+                          s2 == null ? h("span", { class: "cell muted" }, "–") : h("span", { class: `cell sc-${scoreCategory(s2, hole.par)}`, title: scoreName(s2, hole.par) }, String(s2))
+                        );
+                      })
+                    )
+                  )
+                ),
+                h(
+                  "tfoot",
+                  null,
+                  h(
+                    "tr",
+                    null,
+                    h("th", { scope: "row" }, "Tot"),
+                    h("td", { class: "par" }, String(coursePar)),
+                    r.players.map((p) => {
+                      const t = roundTotals(r, p.playerId);
+                      return h("td", null, t.played ? String(t.strokes) : "–", h("span", { class: "diff" }, t.played ? fmtDiff(t.diff) : ""));
+                    })
+                  )
+                )
+              )
+            ),
+            h("p", { class: "note", style: { marginTop: "8px" } }, "Blått är under par, rött över par. Mörkare färg betyder större skillnad.")
+          ),
+          detailed.length ? h(
+            "div",
+            { class: "section" },
+            h("h2", null, "Statistik för rundan"),
+            detailed.map((p) => {
+              const s2 = computeStats(asFinished, p.playerId);
+              if (!s2.detailedHoles) return null;
+              return h(
+                "div",
+                { style: { marginBottom: "14px" } },
+                detailed.length > 1 ? h("h3", { style: { margin: "8px 0" } }, p.name) : null,
+                h(
+                  "div",
+                  { class: "tiles" },
+                  tile(fmtPct(s2.fairway.pct), "Fairwayträffar", s2.fairway),
+                  tile(fmtPct(s2.c1r.pct), "C1 i regulation", s2.c1r),
+                  tile(fmtPct(s2.c2r.pct), "C2 i regulation", s2.c2r),
+                  tile(fmtPct(s2.c1x.pct), "C1X-puttar", s2.c1x),
+                  tile(fmtPct(s2.c2.pct), "C2-puttar", s2.c2),
+                  tile(String(s2.ob), "OB-kast", null)
+                )
+              );
+            })
+          ) : null,
+          r.throws.length ? h(
+            "div",
+            { class: "section" },
+            h("h2", null, "Uppmätta kast"),
+            h(
+              "div",
+              { class: "list" },
+              [...r.throws].sort((a, b) => b.distance - a.distance).map(
+                (t) => h(
+                  "div",
+                  { class: "row", style: { cursor: "default" } },
+                  h("span", { class: "row-big", style: { minWidth: "72px" } }, formatDistance(t.distance)),
+                  h(
+                    "div",
+                    { class: "row-main" },
+                    h("span", { class: "row-title" }, r.players.find((p) => p.playerId === t.playerId)?.name || ""),
+                    h("span", { class: "row-sub" }, `Hål ${r.holes[t.hole]?.label ?? t.hole + 1}`)
+                  )
+                )
+              )
+            )
+          ) : null,
+          h(
+            "div",
+            { class: "section btn-row" },
+            h("button", { class: "btn outline", onclick: () => share(r) }, "Dela resultat"),
+            r.finishedAt ? h("button", {
+              class: "btn outline",
+              onclick: () => {
+                reopenRound(r.id);
+                location.hash = `#/runda/${r.id}`;
+              }
+            }, icon("edit"), "Ändra rundan") : null
+          ),
+          h("button", {
+            class: "btn danger block",
+            style: { marginTop: "10px" },
+            onclick: async () => {
+              const ok = await confirmDialog("Rundan och dess statistik tas bort för alla spelare. Det går inte att ångra.", {
+                title: "Ta bort rundan?",
+                okText: "Ta bort",
+                danger: true
+              });
+              if (!ok) return;
+              deleteRound(r.id);
+              location.hash = "#/historik";
+            }
+          }, icon("trash"), "Ta bort rundan")
+        )
+      );
+    };
+    draw();
+    return subscribe(draw);
+  }
+  function tile(value, label, frac) {
+    return h(
+      "div",
+      { class: "tile" },
+      h("b", null, value),
+      h("span", null, label),
+      frac && frac.att ? h("em", null, `${frac.made} av ${frac.att}`) : null
+    );
+  }
+  async function share(r) {
+    const lines = [`${r.courseName}, ${fmtDateTime(r.startedAt)}`];
+    for (const p of r.players) {
+      const t = roundTotals(r, p.playerId);
+      if (t.played) lines.push(`${p.name}: ${t.strokes} slag (${fmtDiff(t.diff)})`);
+    }
+    const text = lines.join("\n");
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Diskgolfrunda", text });
+      } else {
+        await navigator.clipboard.writeText(text);
+        toast("Resultatet är kopierat.");
+      }
+    } catch (err) {
+      if (err?.name !== "AbortError") toast("Det gick inte att dela resultatet.");
+    }
+  }
+
+  // js/views/history.js
+  var monthFmt = new Intl.DateTimeFormat("sv-SE", { month: "long", year: "numeric" });
+  function renderHistory(root) {
+    const draw = () => {
+      const rounds = [...getState().rounds].sort((a, b) => b.startedAt - a.startedAt);
+      const me = getMe();
+      const groups = /* @__PURE__ */ new Map();
+      for (const r of rounds) {
+        const key = monthFmt.format(new Date(r.startedAt));
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(r);
+      }
+      fill(
+        root,
+        pageHeader("Historik"),
+        h(
+          "div",
+          { class: "content" },
+          rounds.length ? [...groups].map(
+            ([month, list], i) => h(
+              "div",
+              { class: "section", style: i === 0 ? { marginTop: "4px" } : null },
+              h("h2", null, month.charAt(0).toUpperCase() + month.slice(1)),
+              h("div", { class: "list" }, list.map((r) => roundRow(r, me)))
+            )
+          ) : emptyState("Spelade rundor hamnar här.", h("a", { class: "btn primary", href: "#/ny-runda" }, "Starta en runda"))
+        )
+      );
+    };
+    draw();
+    return subscribe(draw);
+  }
+
+  // js/charts.js
+  var NS = "http://www.w3.org/2000/svg";
+  var s = (tag, attrs = {}, ...children) => {
+    const el = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) if (v != null) el.setAttribute(k, v);
+    for (const c of children) if (c) el.append(c);
+    return el;
+  };
+  function trendChart(points) {
+    const box = h("div", { class: "chart-box" });
+    const tip = h("div", { class: "chart-tip", hidden: true });
+    box.append(tip);
+    const draw = () => {
+      box.querySelector("svg")?.remove();
+      const W = Math.max(260, box.clientWidth - 24);
+      const H = 190;
+      const m = { t: 18, r: 34, b: 24, l: 34 };
+      const iw = W - m.l - m.r;
+      const ih = H - m.t - m.b;
+      const values = points.map((p) => p.diff);
+      let lo = Math.min(0, ...values);
+      let hi = Math.max(0, ...values);
+      const step = niceStep(hi - lo || 4);
+      lo = Math.floor(lo / step) * step;
+      hi = Math.ceil(hi / step) * step;
+      if (hi === lo) hi = lo + step;
+      const x = (i) => m.l + (points.length === 1 ? iw / 2 : i / (points.length - 1) * iw);
+      const y = (v) => m.t + (v - lo) / (hi - lo) * ih;
+      const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: "img", "aria-label": "Resultat mot par per runda" });
+      const grid = s("g", { class: "grid" });
+      const axis = s("g", { class: "axis" });
+      for (let v = lo; v <= hi + 1e-9; v += step) {
+        grid.append(s("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v) }));
+        const t = s("text", { x: m.l - 8, y: y(v) + 4, "text-anchor": "end" });
+        t.textContent = v === 0 ? "Par" : fmtDiff(v);
+        axis.append(t);
+      }
+      svg.append(grid, axis);
+      svg.append(s("line", { class: "zero", x1: m.l, x2: W - m.r, y1: y(0), y2: y(0) }));
+      const d = points.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.diff).toFixed(1)}`).join("");
+      svg.append(s("path", { d, fill: "none", stroke: "var(--series-1)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+      const bestIdx = values.indexOf(Math.min(...values));
+      const lastIdx = points.length - 1;
+      points.forEach((p, i) => {
+        svg.append(s("circle", { cx: x(i), cy: y(p.diff), r: 4, fill: "var(--series-1)", stroke: "var(--surface)", "stroke-width": 2 }));
+      });
+      const label = (i, text) => {
+        const t = s("text", {
+          x: x(i),
+          y: y(points[i].diff) - 10,
+          "text-anchor": i === 0 ? "start" : i === lastIdx ? "end" : "middle",
+          fill: "var(--ink)",
+          "font-size": 12,
+          "font-weight": 600
+        });
+        t.textContent = text;
+        svg.append(t);
+      };
+      label(lastIdx, fmtDiff(points[lastIdx].diff));
+      if (bestIdx !== lastIdx) label(bestIdx, `Bäst ${fmtDiff(points[bestIdx].diff)}`);
+      const cross = s("line", { y1: m.t, y2: H - m.b, stroke: "var(--ink-3)", "stroke-width": 1, visibility: "hidden" });
+      const ring = s("circle", { r: 6, fill: "none", stroke: "var(--ink)", "stroke-width": 2, visibility: "hidden" });
+      const hit = s("rect", { x: 0, y: 0, width: W, height: H, fill: "transparent" });
+      svg.append(cross, ring, hit);
+      const show = (evt) => {
+        const rect = svg.getBoundingClientRect();
+        const px = (evt.clientX - rect.left) / rect.width * W;
+        let best = 0;
+        for (let i = 1; i < points.length; i++) if (Math.abs(x(i) - px) < Math.abs(x(best) - px)) best = i;
+        const p = points[best];
+        cross.setAttribute("x1", x(best));
+        cross.setAttribute("x2", x(best));
+        cross.setAttribute("visibility", "visible");
+        ring.setAttribute("cx", x(best));
+        ring.setAttribute("cy", y(p.diff));
+        ring.setAttribute("visibility", "visible");
+        tip.hidden = false;
+        fill(tip, h("strong", null, fmtDiff(p.diff)), h("br"), `${p.courseName}, ${fmtDate(p.date)}`);
+        tip.style.left = `${Math.min(Math.max(x(best) + 12, 80), W - 60)}px`;
+        tip.style.top = `${y(p.diff) + 12}px`;
+      };
+      const hide = () => {
+        cross.setAttribute("visibility", "hidden");
+        ring.setAttribute("visibility", "hidden");
+        tip.hidden = true;
+      };
+      hit.addEventListener("pointermove", show);
+      hit.addEventListener("pointerdown", show);
+      hit.addEventListener("pointerleave", hide);
+      box.prepend(svg);
+    };
+    const ro = new ResizeObserver(() => draw());
+    ro.observe(box);
+    return box;
+  }
+  function niceStep(range) {
+    const raw = range / 4;
+    const mag = 10 ** Math.floor(Math.log10(raw));
+    const n = raw / mag;
+    return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * mag;
+  }
+  var CATS = [
+    ["ace", "Hole in one", "var(--bar-eagle)"],
+    ["eagle", "Eagle+", "var(--bar-eagle)"],
+    ["birdie", "Birdie", "var(--bar-birdie)"],
+    ["par", "Par", "var(--bar-par)"],
+    ["bogey", "Bogey", "var(--bar-bogey)"],
+    ["double", "Dubbelbogey+", "var(--bar-double)"]
+  ];
+  function distributionBars(dist) {
+    const total = Object.values(dist).reduce((a, b) => a + b, 0);
+    const max = Math.max(1, ...Object.values(dist));
+    return h(
+      "div",
+      { class: "chart-box" },
+      h(
+        "div",
+        { class: "bars", role: "list" },
+        CATS.filter(([k]) => k !== "ace" || dist.ace > 0).map(([key, label, color]) => {
+          const n = dist[key];
+          const pct2 = total ? Math.round(n / total * 100) : 0;
+          return h(
+            "div",
+            { class: "bar-row", role: "listitem", title: `${label}: ${n} hål (${pct2} %)` },
+            h("span", { class: "bar-label" }, h("span", { class: "swatch", style: { background: color } }), label),
+            h("div", { class: "bar-track" }, n ? h("div", { class: "bar-fill", style: { width: `${n / max * 100}%`, background: color } }) : null),
+            h("span", { class: "bar-val" }, `${pct2} %`, h("span", { class: "small" }, ` (${n})`))
+          );
+        })
+      )
+    );
+  }
+  function holeDiffBars(rows) {
+    const max = Math.max(0.5, ...rows.filter((r) => r.diff != null).map((r) => Math.abs(r.diff)));
+    return h(
+      "div",
+      { class: "chart-box" },
+      h(
+        "div",
+        { class: "hole-bars", role: "list" },
+        rows.map(
+          (r) => h(
+            "div",
+            { class: "hole-bar", role: "listitem", title: r.avg == null ? `Hål ${r.label}: inte spelat` : `Hål ${r.label}, par ${r.par}: snitt ${r.avg.toFixed(2).replace(".", ",")} slag` },
+            h("span", { class: "lbl" }, r.label),
+            h("div", { class: "neg" }, r.diff != null && r.diff < 0 ? h("div", { style: { width: `${-r.diff / max * 100}%` } }) : null),
+            h("div", { class: "pos" }, r.diff != null && r.diff > 0 ? h("div", { style: { width: `${r.diff / max * 100}%` } }) : null),
+            h("span", { class: "val" }, r.diff == null ? "–" : fmtDiff(r.diff))
+          )
+        )
+      )
+    );
+  }
+
+  // js/views/stats.js
+  var selection = { playerId: null, courseKey: "" };
+  function renderStats(root) {
+    const draw = () => {
+      const state2 = getState();
+      const players = state2.players;
+      if (!players.length) {
+        fill(root, pageHeader("Statistik"), h("div", { class: "content" }, emptyState("Lägg till dig själv och spela en runda så dyker statistiken upp här.", h("a", { class: "btn primary", href: "#/" }, "Kom igång"))));
+        return;
+      }
+      if (!players.some((p) => p.id === selection.playerId)) {
+        selection.playerId = (getMe() || players[0]).id;
+        selection.courseKey = "";
+      }
+      const courses = playedCourses(state2, selection.playerId);
+      if (selection.courseKey && !courses.some((c) => c.key === selection.courseKey)) selection.courseKey = "";
+      const st = computeStats(state2, selection.playerId, { courseKey: selection.courseKey || void 0 });
+      const filters = h(
+        "div",
+        { style: { display: "grid", gap: "10px" } },
+        players.length > 1 ? h(
+          "div",
+          { class: "segmented", role: "group", "aria-label": "Spelare" },
+          players.map(
+            (p) => h("button", {
+              "aria-pressed": String(p.id === selection.playerId),
+              onclick: () => {
+                selection = { playerId: p.id, courseKey: "" };
+                draw();
+              }
+            }, p.name)
+          )
+        ) : null,
+        h(
+          "select",
+          {
+            "aria-label": "Bana",
+            onchange: (e) => {
+              selection.courseKey = e.target.value;
+              draw();
+            }
+          },
+          h("option", { value: "" }, "Alla banor"),
+          courses.map((c) => h("option", { value: c.key, selected: c.key === selection.courseKey }, `${c.name} (${c.count})`))
+        )
+      );
+      const complete = st.trend.filter((t) => t.complete);
+      const body = st.roundCount === 0 ? [emptyState("Inga avslutade rundor än. Statistiken räknas fram när du avslutar en runda.")] : [
+        h(
+          "div",
+          { class: "tiles" },
+          tile2(String(st.roundCount), st.roundCount === 1 ? "Runda" : "Rundor"),
+          tile2(st.avgDiff == null ? "–" : fmtDiff(st.avgDiff), "Snitt mot par"),
+          tile2(st.best ? fmtDiff(st.best.diff) : "–", "Bästa runda", st.best ? `${st.best.courseName}, ${fmtDate(st.best.date)}` : null)
+        ),
+        complete.length >= 2 ? h(
+          "div",
+          { class: "section" },
+          h("h2", null, "Resultat mot par per runda"),
+          trendChart(complete.slice(-30)),
+          h(
+            "details",
+            { class: "table-view" },
+            h("summary", null, "Visa som tabell"),
+            h(
+              "table",
+              null,
+              h("thead", null, h("tr", null, h("th", null, "Datum"), h("th", null, "Bana"), h("th", null, "Mot par"))),
+              h(
+                "tbody",
+                null,
+                [...complete].reverse().map(
+                  (t) => h("tr", null, h("td", null, fmtDate(t.date)), h("td", null, t.courseName), h("td", null, fmtDiff(t.diff)))
+                )
+              )
+            )
+          )
+        ) : null,
+        h(
+          "div",
+          { class: "section" },
+          h("h2", null, "Resultat per hål"),
+          h("p", { class: "note" }, `${st.holes} spelade hål`),
+          distributionBars(st.distribution)
+        ),
+        h(
+          "div",
+          { class: "section" },
+          h("h2", null, "Utkast och inspel"),
+          st.detailedHoles ? h(
+            "div",
+            { class: "tiles" },
+            pctTile(st.fairway, "Fairwayträffar"),
+            pctTile(st.c2r, "C2 i regulation"),
+            pctTile(st.c1r, "C1 i regulation"),
+            pctTile(st.parked, "Parkerad"),
+            pctTile(st.scramble, "Scramble"),
+            tile2(st.obPerRound == null ? "–" : st.obPerRound.toFixed(1).replace(".", ","), "OB per 18 hål")
+          ) : detailHint()
+        ),
+        h(
+          "div",
+          { class: "section" },
+          h("h2", null, "Puttning"),
+          st.detailedHoles ? h(
+            "div",
+            { class: "tiles" },
+            pctTile(st.c1, "C1 (inom 10 m)"),
+            pctTile(st.c1x, "C1X (3,3–10 m)"),
+            pctTile(st.c2, "C2 (10–20 m)")
+          ) : detailHint()
+        ),
+        h(
+          "div",
+          { class: "section" },
+          h("h2", null, "Uppmätta kast"),
+          st.throws.count ? [
+            h(
+              "div",
+              { class: "tiles two" },
+              tile2(formatDistance(st.throws.longest.distance), "Längsta kast", st.throws.longest.courseName),
+              tile2(formatDistance(st.throws.average), "Snittlängd", `${st.throws.count} kast`)
+            ),
+            h(
+              "div",
+              { class: "list", style: { marginTop: "10px" } },
+              st.throws.recent.map(
+                (t) => h(
+                  "div",
+                  { class: "row", style: { cursor: "default", minHeight: "52px" } },
+                  h("span", { class: "row-big", style: { minWidth: "72px" } }, formatDistance(t.distance)),
+                  h(
+                    "div",
+                    { class: "row-main" },
+                    h("span", { class: "row-title" }, t.courseName),
+                    h("span", { class: "row-sub" }, fmtDate(t.at))
+                  )
+                )
+              )
+            )
+          ] : h("p", { class: "note" }, "Mät kast under en runda med knappen Mät kast så sparas de här.")
+        ),
+        st.holeAverages ? h(
+          "div",
+          { class: "section" },
+          h("h2", null, "Snitt per hål"),
+          h("p", { class: "note" }, "Blått åt vänster: du spelar hålet under par i snitt. Rött åt höger: över par."),
+          holeDiffBars(st.holeAverages)
+        ) : null
+      ];
+      fill(root, pageHeader("Statistik"), h("div", { class: "content" }, filters, h("div", { class: "section" }, body)));
+    };
+    draw();
+    return subscribe(draw);
+  }
+  function tile2(value, label, sub) {
+    return h("div", { class: "tile" }, h("b", null, value), h("span", null, label), sub ? h("em", null, sub) : null);
+  }
+  function pctTile(frac, label) {
+    return tile2(fmtPct(frac.pct), label, frac.att ? `${frac.made} av ${frac.att}` : "Ingen data");
+  }
+  function detailHint() {
+    return h("p", { class: "note" }, "Kräver detaljerad statistik. Slå på den för dig när du startar en runda och logga var varje kast landar.");
+  }
+
+  // js/views/more.js
+  var APP_VERSION = "1.0.0";
+  function renderMore(root) {
+    const draw = () => {
+      const state2 = getState();
+      const newName = h("input", { type: "text", placeholder: "Namn", autocomplete: "off", "aria-label": "Ny spelare" });
+      const fileInput = h("input", { type: "file", accept: "application/json,.json", hidden: true, onchange: onImport });
+      fill(
+        root,
+        pageHeader("Mer"),
+        h(
+          "div",
+          { class: "content" },
+          h(
+            "div",
+            { class: "section", style: { marginTop: "4px" } },
+            h("h2", null, "Spelare"),
+            state2.players.length ? h(
+              "div",
+              { class: "list" },
+              state2.players.map(
+                (p) => h(
+                  "div",
+                  { class: "row", style: { cursor: "default" } },
+                  h(
+                    "div",
+                    { class: "row-main" },
+                    h("span", { class: "row-title" }, p.name),
+                    h("span", { class: "row-sub" }, p.isMe ? "Det här är du" : h("button", { class: "link-btn small", onclick: () => setMe(p.id) }, "Det här är jag"))
+                  ),
+                  h("button", {
+                    class: "icon-btn",
+                    "aria-label": `Byt namn på ${p.name}`,
+                    onclick: async () => {
+                      const name = await promptDialog("Byt namn", { value: p.name });
+                      if (name) renamePlayer(p.id, name);
+                    }
+                  }, icon("edit")),
+                  h("button", {
+                    class: "icon-btn",
+                    "aria-label": `Ta bort ${p.name}`,
+                    onclick: async () => {
+                      const ok = await confirmDialog(`${p.name} tas bort från spelarlistan. Rundor där ${p.name} spelat finns kvar.`, {
+                        title: "Ta bort spelaren?",
+                        okText: "Ta bort",
+                        danger: true
+                      });
+                      if (ok) removePlayer(p.id);
+                    }
+                  }, icon("trash"))
+                )
+              )
+            ) : null,
+            h("form", {
+              class: "inline-form",
+              style: { marginTop: "10px" },
+              onsubmit: (e) => {
+                e.preventDefault();
+                if (!newName.value.trim()) return;
+                addPlayer(newName.value);
+                toast("Spelaren är tillagd.");
+              }
+            }, newName, h("button", { class: "btn outline", type: "submit" }, icon("plus"), "Lägg till"))
+          ),
+          h(
+            "div",
+            { class: "section" },
+            h("h2", null, "Inställningar"),
+            h(
+              "div",
+              { class: "list" },
+              h(
+                "label",
+                { class: "row", style: { cursor: "pointer" } },
+                h(
+                  "div",
+                  { class: "row-main" },
+                  h("span", { class: "row-title" }, "Håll skärmen tänd under rundan"),
+                  h("span", { class: "row-sub" }, "Telefonen somnar inte mellan hålen")
+                ),
+                h(
+                  "span",
+                  { class: "switch" },
+                  h("input", {
+                    type: "checkbox",
+                    checked: state2.settings.keepAwake,
+                    onchange: (e) => setSetting("keepAwake", e.target.checked)
+                  })
+                )
+              )
+            )
+          ),
+          h(
+            "div",
+            { class: "section" },
+            h("h2", null, "Dina data"),
+            h(
+              "p",
+              { class: "note" },
+              "Allt sparas bara på den här telefonen, i webbläsaren. Exportera en säkerhetskopia då och då, och använd den för att flytta dina rundor till en annan enhet."
+            ),
+            h(
+              "div",
+              { class: "btn-row" },
+              h("button", {
+                class: "btn outline",
+                onclick: () => {
+                  const date = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+                  downloadFile(`kedjeklang-${date}.json`, exportJson());
+                }
+              }, icon("download"), "Exportera"),
+              h("button", { class: "btn outline", onclick: () => fileInput.click() }, icon("upload"), "Importera")
+            ),
+            fileInput,
+            h(
+              "p",
+              { class: "note", style: { marginTop: "10px" } },
+              `${state2.rounds.length} rundor, ${state2.courses.length} banor och ${state2.players.length} spelare sparade.`
+            ),
+            h("button", {
+              class: "btn danger block",
+              style: { marginTop: "6px" },
+              onclick: async () => {
+                const ok = await confirmDialog("Alla rundor, banor och spelare raderas från den här enheten. Det går inte att ångra.", {
+                  title: "Radera allt?",
+                  okText: "Radera allt",
+                  danger: true
+                });
+                if (ok) {
+                  clearAll();
+                  toast("All data är raderad.");
+                }
+              }
+            }, icon("trash"), "Radera all data")
+          ),
+          h(
+            "div",
+            { class: "section" },
+            h("h2", null, "Om appen"),
+            h(
+              "p",
+              { class: "note" },
+              `Kedjeklang ${APP_VERSION}. En fri diskgolfapp med öppen källkod. Kartor och banor kommer från `,
+              h("a", { href: "https://www.openstreetmap.org/copyright", target: "_blank", rel: "noopener" }, "OpenStreetMap"),
+              " (data under ODbL). Kartan visas med Leaflet. Typsnitt: Barlow (SIL Open Font License)."
+            ),
+            h(
+              "p",
+              { class: "note" },
+              "Lägg appen på hemskärmen för bästa upplevelse: i Safari, välj Dela och sedan Lägg till på hemskärmen. I Chrome, öppna menyn och välj Lägg till på startskärmen eller Installera app."
+            )
+          )
+        )
+      );
+      async function onImport(e) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const ok = await confirmDialog("Importen ersätter allt som finns sparat på den här enheten nu.", {
+            title: "Importera säkerhetskopia?",
+            okText: "Importera",
+            danger: true
+          });
+          if (!ok) return;
+          importJson(text);
+          toast("Säkerhetskopian är importerad.");
+        } catch (err) {
+          toast(err instanceof SyntaxError ? "Filen gick inte att läsa som JSON." : err.message);
+        }
+      }
+    };
+    draw();
+    return subscribe(draw);
+  }
+
+  // js/main.js
+  var ROUTES = [
+    ["", renderHome, "home", "play"],
+    ["banor", renderCourses, "courses", "courses"],
+    ["banor/hitta", renderFindCourses, "find", "courses"],
+    ["osm/:type/:id", renderOsmCourse, "osm", "courses"],
+    ["bana/ny", renderCourseEditor, "course", "courses"],
+    ["bana/:id", renderCourseEditor, "course", "courses"],
+    ["ny-runda", renderNewRound, "new-round", "play"],
+    ["runda/:id", renderPlay, "play", null],
+    ["runda/:id/kort", renderScorecard, "scorecard", "history"],
+    ["historik", renderHistory, "history", "history"],
+    ["statistik", renderStats, "stats", "stats"],
+    ["mer", renderMore, "more", "more"]
+  ];
+  var TABS = [
+    ["play", "#/", "Spela", "play"],
+    ["courses", "#/banor", "Banor", "courses"],
+    ["history", "#/historik", "Historik", "history"],
+    ["stats", "#/statistik", "Statistik", "stats"],
+    ["more", "#/mer", "Mer", "more"]
+  ];
+  var app = document.getElementById("app");
+  var cleanup = null;
+  function parseHash() {
+    const raw = location.hash.replace(/^#\/?/, "");
+    const [path, qs] = raw.split("?");
+    const parts = path.split("/").filter(Boolean);
+    const query = Object.fromEntries(new URLSearchParams(qs || ""));
+    for (const [pattern, view, name, tab] of ROUTES) {
+      const pp = pattern.split("/").filter(Boolean);
+      if (pp.length !== parts.length) continue;
+      const params = {};
+      const ok = pp.every((seg, i) => {
+        if (seg.startsWith(":")) {
+          params[seg.slice(1)] = decodeURIComponent(parts[i]);
+          return true;
+        }
+        return seg === parts[i];
+      });
+      if (ok) return { view, name, tab, params, query };
+    }
+    return { view: renderHome, name: "home", tab: "play", params: {}, query: {} };
+  }
+  function render() {
+    try {
+      cleanup?.();
+    } catch (err) {
+      console.error(err);
+    }
+    cleanup = null;
+    const route = parseHash();
+    document.body.dataset.view = route.name;
+    fill(app);
+    window.scrollTo(0, 0);
+    try {
+      cleanup = route.view(app, route.params, route.query) || null;
+    } catch (err) {
+      console.error(err);
+      fill(
+        app,
+        h(
+          "div",
+          { class: "content" },
+          h(
+            "div",
+            { class: "warn error-box", style: { marginTop: "24px" } },
+            h("p", null, "Något gick fel när sidan skulle visas."),
+            h("p", { class: "small" }, String(err.message || err)),
+            h("a", { class: "btn outline", href: "#/" }, "Till startsidan")
+          )
+        )
+      );
+    }
+    renderChrome(route);
+  }
+  var tabbar = h("nav", { class: "tabbar", "aria-label": "Huvudmeny" });
+  var strip = h("div", { class: "active-strip" });
+  document.body.append(strip, tabbar);
+  function renderChrome(route) {
+    fill(
+      tabbar,
+      h(
+        "div",
+        { class: "tabbar-inner" },
+        TABS.map(
+          ([key, href, label, ic]) => h("a", { href, "aria-current": route.tab === key ? "page" : null }, icon(ic), label)
+        )
+      )
+    );
+    const active = activeRound();
+    const showStrip = active && route.name !== "play" && route.name !== "home";
+    document.body.classList.toggle("has-strip", !!showStrip);
+    fill(strip);
+    if (showStrip) {
+      strip.append(
+        h(
+          "a",
+          { href: `#/runda/${active.id}` },
+          h("span", { class: "strip-hole" }, active.holes[active.currentHole]?.label ?? ""),
+          h(
+            "span",
+            { class: "strip-text" },
+            h("strong", null, active.courseName),
+            h("span", null, "Pågående runda – tryck för att fortsätta")
+          ),
+          icon("next")
+        )
+      );
+    }
+  }
+  load();
+  onSaveError(
+    () => toast("Det gick inte att spara. Lagringen i webbläsaren kan vara full – exportera en säkerhetskopia under Mer.", {
+      duration: 8e3
+    })
+  );
+  subscribe(() => renderChrome(parseHash()));
+  window.addEventListener("hashchange", render);
+  render();
+  navigator.storage?.persist?.().catch(() => {
+  });
+  if ("serviceWorker" in navigator && location.protocol !== "file:" && !window.KEDJEKLANG_SINGLE_FILE) {
+    window.addEventListener("load", async () => {
+      try {
+        const reg = await navigator.serviceWorker.register("sw.js");
+        reg.addEventListener("updatefound", () => {
+          const worker = reg.installing;
+          worker?.addEventListener("statechange", () => {
+            if (worker.state === "installed" && navigator.serviceWorker.controller) {
+              toast("En ny version av appen finns.", {
+                action: "Uppdatera",
+                duration: 15e3,
+                onAction: () => worker.postMessage("skipWaiting")
+              });
+            }
+          });
+        });
+        let reloaded = false;
+        const hadController = !!navigator.serviceWorker.controller;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (reloaded || !hadController) return;
+          reloaded = true;
+          location.reload();
+        });
+      } catch (err) {
+        console.warn("Service worker kunde inte registreras", err);
+      }
+    });
+  }
+})();
+
+</script>
+</body>
+</html>
